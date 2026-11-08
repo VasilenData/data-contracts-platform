@@ -8,13 +8,18 @@ from datacontracts.validate import validate
 
 
 def contract(kind="timestamp"):
-    return parse_contract({"dataset": "events", "version": "1.0.0", "owner": "test",
-                           "columns": [{"name": "ts", "type": kind}],
-                           "freshness": {"column": "ts", "max_age_hours": 24}})
+    return parse_contract(
+        {
+            "dataset": "events",
+            "version": "1.0.0",
+            "owner": "test",
+            "columns": [{"name": "ts", "type": kind}],
+            "freshness": {"column": "ts", "max_age_hours": 24},
+        }
+    )
 
 
-@pytest.mark.parametrize("kind,sql", [("timestamp", "timestamp '2026-01-01 12:00:00'"),
-                                     ("date", "date '2026-01-01'")])
+@pytest.mark.parametrize("kind,sql", [("timestamp", "timestamp '2026-01-01 12:00:00'"), ("date", "date '2026-01-01'")])
 def test_timezone_aware_clock_and_date_source(tmp_path, kind, sql):
     source = tmp_path / "data.parquet"
     with duckdb.connect() as con:
@@ -38,7 +43,13 @@ def test_empty_allowed_values_rejects_all_nonnull_values(tmp_path):
     source = tmp_path / "data.parquet"
     with duckdb.connect() as con:
         con.execute("copy (select * from (values ('x'), (null)) t(value)) to ? (format parquet)", [str(source)])
-    spec = parse_contract({"dataset": "empty-domain", "version": "1.0.0", "owner": "test",
-                           "columns": [{"name": "value", "type": "string", "allowed": []}]})
+    spec = parse_contract(
+        {
+            "dataset": "empty-domain",
+            "version": "1.0.0",
+            "owner": "test",
+            "columns": [{"name": "value", "type": "string", "allowed": []}],
+        }
+    )
     report = validate(spec, str(source))
     assert not report.ok and report.failures[0].violations == 1
