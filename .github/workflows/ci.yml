@@ -23,3 +23,18 @@ jobs:
           if python -m datacontracts diff contracts/yellow_taxi_v1.yaml contracts/yellow_taxi_v3_breaking.yaml; then
             echo "breaking change was not rejected"; exit 1
           fi
+  dag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Airflow with the official constraints
+        run: |
+          pip install -r requirements-dev.txt "apache-airflow==2.10.5" \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.11.txt"
+      - name: DAG imports and keeps its retry policy
+        run: |
+          export PYTHONPATH=src AIRFLOW_HOME=$RUNNER_TEMP/af AIRFLOW__CORE__LOAD_EXAMPLES=False
+          pytest -q tests/test_dag.py
