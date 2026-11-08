@@ -50,3 +50,40 @@ def test_freshness_column_must_exist_and_severity_checked():
     raw["checks"] = [{"name": "c", "expr": "a > 0", "severity": "fatal"}]
     with pytest.raises(ContractError, match="severity"):
         parse_contract(raw)
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.01, float("nan"), float("inf"), True, "invalid"])
+@pytest.mark.parametrize("target", ["column", "check"])
+def test_invalid_tolerances_cannot_disable_quality_gates(value, target):
+    raw = base()
+    if target == "column":
+        raw["columns"][0]["max_violation_rate"] = value
+    else:
+        raw["checks"] = [{"name": "positive", "expr": "a >= 0", "max_violation_rate": value}]
+    with pytest.raises(ContractError, match="max_violation_rate"):
+        parse_contract(raw)
+
+
+@pytest.mark.parametrize("name", ["nullable", "unique"])
+def test_quoted_false_is_not_silently_true(name):
+    raw = base()
+    raw["columns"][0][name] = "false"
+    with pytest.raises(ContractError, match=name):
+        parse_contract(raw)
+
+
+@pytest.mark.parametrize("value", [-1, 1.5, True])
+def test_invalid_row_floors_rejected(value):
+    raw = base()
+    raw["min_rows"] = value
+    with pytest.raises(ContractError, match="min_rows"):
+        parse_contract(raw)
+
+
+@pytest.mark.parametrize("value", [-1, float("inf"), float("nan")])
+def test_invalid_freshness_limits_rejected(value):
+    raw = base()
+    raw["columns"][0]["type"] = "timestamp"
+    raw["freshness"] = {"column": "a", "max_age_hours": value}
+    with pytest.raises(ContractError, match="max_age_hours"):
+        parse_contract(raw)

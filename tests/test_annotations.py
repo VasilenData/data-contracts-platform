@@ -99,7 +99,7 @@ def test_cli_format_github_prints_annotations_and_keeps_exit_code(tmp_path, caps
     code = main(["validate", str(c), str(path), "--format", "github"])
     out = capsys.readouterr().out
     assert code == 1
-    assert f"::error file={c},line=6,title=min%3Aa::" in out
+    assert f"::error file={escape_property(str(c))},line=6,title=min%3Aa::" in out
     assert "2 violations of 3 rows" in out
     assert "::warning" not in out  # a < 10 holds for every row
 
