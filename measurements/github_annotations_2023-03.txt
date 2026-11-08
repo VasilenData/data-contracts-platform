@@ -1,0 +1,35 @@
+::error file=contracts/yellow_taxi_v1.yaml,line=13,title=schema%3Apassenger_count::1 violations of 1 rows (100.0000%25), allowed 0.0000%25. expected float, found BIGINT
+::error file=contracts/yellow_taxi_v1.yaml,line=15,title=schema%3ARatecodeID::1 violations of 1 rows (100.0000%25), allowed 0.0000%25. expected float, found BIGINT
+::error file=contracts/yellow_taxi_v1.yaml,line=10,title=allowed%3AVendorID::1,928 violations of 3,403,766 rows (0.0566%25), allowed 0.0000%25. value not allowed
+::error file=contracts/yellow_taxi_v1.yaml,line=19,title=allowed%3Apayment_type::1 violations of 3,403,766 rows (0.0000%25), allowed 0.0000%25. value not allowed
+::error file=contracts/yellow_taxi_v1.yaml,line=24,title=check%3Adropoff_not_before_pickup::357 violations of 3,403,766 rows (0.0105%25), allowed 0.0010%25. tpep_dropoff_datetime >= tpep_pickup_datetime
+nyc_yellow_taxi_trips v1.0.0: 3,403,766 rows in 1.08s
+  FAIL schema:passenger_count: 1 violations (100.0000%) expected float, found BIGINT
+  FAIL schema:RatecodeID: 1 violations (100.0000%) expected float, found BIGINT
+  ok   not_null:VendorID: 0 violations (0.0000%)
+  FAIL allowed:VendorID: 1,928 violations (0.0566%) value not allowed
+  ok   not_null:tpep_pickup_datetime: 0 violations (0.0000%)
+  ok   not_null:tpep_dropoff_datetime: 0 violations (0.0000%)
+  ok   not_null:trip_distance: 0 violations (0.0000%)
+  ok   min:trip_distance: 0 violations (0.0000%)
+  ok   max:trip_distance: 117 violations (0.0034%)
+  ok   allowed:store_and_fwd_flag: 0 violations (0.0000%)
+  ok   not_null:PULocationID: 0 violations (0.0000%)
+  ok   min:PULocationID: 0 violations (0.0000%)
+  ok   max:PULocationID: 0 violations (0.0000%)
+  ok   not_null:DOLocationID: 0 violations (0.0000%)
+  ok   min:DOLocationID: 0 violations (0.0000%)
+  ok   max:DOLocationID: 0 violations (0.0000%)
+  ok   not_null:payment_type: 0 violations (0.0000%)
+  FAIL allowed:payment_type: 1 violations (0.0000%) value not allowed
+  ok   not_null:fare_amount: 0 violations (0.0000%)
+  ok   min:fare_amount: 29,677 violations (0.8719%)
+  ok   max:fare_amount: 31 violations (0.0009%)
+  ok   not_null:tip_amount: 0 violations (0.0000%)
+  ok   min:tip_amount: 250 violations (0.0073%)
+  ok   not_null:total_amount: 0 violations (0.0000%)
+  FAIL check:dropoff_not_before_pickup: 357 violations (0.0105%) tpep_dropoff_datetime >= tpep_pickup_datetime
+  ok   check:pickup_in_2023: 11 violations (0.0003%)
+  ok   check:total_covers_fare: 29,563 violations (0.8685%)
+  ok   min_rows: 0 violations (0.0000%)
+FAIL
