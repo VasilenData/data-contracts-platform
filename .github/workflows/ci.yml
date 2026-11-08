@@ -23,6 +23,11 @@ jobs:
           if python -m datacontracts diff contracts/yellow_taxi_v1.yaml contracts/yellow_taxi_v3_breaking.yaml; then
             echo "breaking change was not rejected"; exit 1
           fi
+      - name: Annotation demo (a sample file that breaks three rules, shown on the run summary)
+        run: |
+          export PYTHONPATH=src
+          python -c "import duckdb; c = duckdb.connect(); c.execute(\"COPY (SELECT * FROM (VALUES (1, 5.0, 'paid'), (1, -2.0, 'paid'), (3, 9.0, 'lost')) t(order_id, amount, status)) TO 'demo_orders.parquet' (FORMAT PARQUET)\")"
+          python -m datacontracts validate contracts/demo_orders.yaml demo_orders.parquet --format github || test $? -eq 1
   dag:
     runs-on: ubuntu-latest
     steps:
