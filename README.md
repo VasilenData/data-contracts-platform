@@ -69,6 +69,7 @@ CI runs both: v1 to v2 must pass and v1 to v3 must be rejected.
 pip install .            # or: pip install -r requirements.txt and run with PYTHONPATH=src
 datacontracts validate contracts/yellow_taxi_v1.yaml yellow_tripdata_2023-01.parquet
 datacontracts validate contracts/yellow_taxi_v1.yaml data.csv --json
+datacontracts validate contracts/yellow_taxi_v1.yaml data.parquet --format github   # ::error per failed rule
 datacontracts diff old_contract.yaml new_contract.yaml
 ```
 
@@ -97,6 +98,22 @@ checks:
 - `validate.py` turns every rule into a SQL predicate that is TRUE for a violating row, and computes the row count and every violation count in a single `SELECT`. Nulls never trip a range, allowed-values or regex rule (use `nullable: false` for that), and a cross-column check that evaluates to NULL is not a violation.
 - `diff.py` treats the contract as a promise. Weakening it is breaking (a removed column, a wider range, a new allowed value, a nullable column that was NOT NULL, a looser tolerance, a removed check). Strengthening it is safe. Regex and owner changes are flagged for review.
 
+## Failures as GitHub annotations
+
+`--format github` prints one workflow command per failed rule, then the usual text summary. In a GitHub Actions step, each one shows up on the contract file in the run summary, on the line that defines the rule:
+
+```yaml
+- run: datacontracts validate contracts/orders.yaml data/orders.parquet --format github
+```
+
+Real output for March 2023 against the January contract (`measurements/github_annotations_2023-03.txt`), first line:
+
+```
+::error file=contracts/yellow_taxi_v1.yaml,line=10,title=allowed%3AVendorID::1,928 violations of 3,403,766 rows (0.0566%25), allowed 0.0000%25. value not allowed
+```
+
+Rules with `severity: warn` become `::warning`. Sample rows are not printed, so values from the data do not end up in CI logs. Message text is escaped, so a check expression containing a newline cannot start a second command. The command syntax is from GitHub's workflow-commands documentation and the escaping is the same as `escapeData` and `escapeProperty` in the `actions/toolkit` source. CI runs it on a deliberately failing sample (`contracts/demo_orders.yaml`) so the annotations show on the run summary; that step tolerates exit code 1 and fails on anything else. The summary showed `allowed:status: contracts/demo_orders.yaml#L10` with the message, so the line numbers and the escaping render as intended. The demo's red annotations on a green run are intentional. Limits: line numbers come from a text match on `name:` in the YAML, so a contract that defines the same column name twice would point at the first match.
+
 ## Run it under Airflow
 
 `airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a bad month fails alone and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
@@ -115,7 +132,7 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 
 ## Tests
 
-77 tests (64 for the validator, diff and CLI, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
+90 tests (77 for the validator, diff, CLI and annotations, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The annotation module was mutation-checked with 8 mutants (inverted severity, broken escaping, off-by-one line numbers, passing rules reported, missing-line handling and the block-style YAML match); one survived until I added a block-style YAML test. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
 
 ## Decisions and trade-offs
 
@@ -137,7 +154,6 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 ## Next steps
 
 - Read a contract from a dbt model's columns and tests.
-- Emit a GitHub Actions annotation per failed rule.
 - Add a `profile` command that proposes a first contract and tolerances from a file.
 
 MIT licensed. Data: NYC Taxi and Limousine Commission trip records (public).
