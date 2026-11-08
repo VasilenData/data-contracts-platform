@@ -97,9 +97,25 @@ checks:
 - `validate.py` turns every rule into a SQL predicate that is TRUE for a violating row, and computes the row count and every violation count in a single `SELECT`. Nulls never trip a range, allowed-values or regex rule (use `nullable: false` for that), and a cross-column check that evaluates to NULL is not a violation.
 - `diff.py` treats the contract as a promise. Weakening it is breaking (a removed column, a wider range, a new allowed value, a nullable column that was NOT NULL, a looser tolerance, a removed check). Strengthening it is safe. Regex and owner changes are flagged for review.
 
+## Run it under Airflow
+
+`airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a bad month fails alone and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
+
+- **Two kinds of failure, handled differently.** A missing file or I/O error is transient, so the task retries 3 times with exponential backoff. A contract violation means the data arrived and is wrong, so waiting cannot fix it: the task sends the alert and fails at once through `AirflowFailException`, with no retries.
+- **The alert says what broke.** One message per failed file, listing each blocking rule with its violation count, rate and allowed rate. It is always appended to a log file (`DATACONTRACTS_ALERT_LOG`) and also posted to a Slack-style webhook if `DATACONTRACTS_WEBHOOK` is set. A broken webhook is reported, not raised, so it cannot hide the original failure.
+
+Measured with `airflow dags test` on Airflow 2.10.5 (`measurements/airflow_runs.json`, `measurements/airflow_alerts_real_data.log`):
+
+| Run | Result |
+|---|---|
+| Real 2023 files, contract v1 | January passed, the other 11 months failed, 11 alerts, 0 retries |
+| Data folder missing (retry delay set to 1 s) | 36 retry attempts (12 tasks x 3), 12 tasks failed after retries, 12 alerts |
+
+To run it: `pip install apache-airflow==2.10.5` with the official constraints file, then `PYTHONPATH=src DATACONTRACTS_DATA_DIR=<folder> airflow dags test contract_check 2026-11-08`. This is a local run for a demonstration. It is not deployed, the DAG has `schedule=None`, and I did not run a long-lived scheduler or webserver.
+
 ## Tests
 
-64 tests, run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them.
+77 tests (64 for the validator, diff and CLI, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
 
 ## Decisions and trade-offs
 
@@ -116,7 +132,7 @@ checks:
 - Checks are SQL expressions, which are trusted input. Do not load contracts from untrusted sources.
 - `diff` compares contract files only. It does not know which consumers read which column, so "breaking" means "could break a consumer", not "will".
 - Types are coarse (string, int, float, bool, date, timestamp). There is no decimal precision or nested type support.
-- Local files only. It is not wired to a warehouse, an orchestrator or a catalog.
+- Local files only. The Airflow DAG runs locally through `airflow dags test`. It is not deployed, not scheduled, and not wired to a warehouse or a catalog.
 
 ## Next steps
 
