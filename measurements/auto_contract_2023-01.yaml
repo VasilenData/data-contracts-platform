@@ -1,0 +1,38 @@
+# Proposed by `datacontracts profile`. Review every rule before you rely on it.
+# Profiled 3,066,766 rows from yellow_tripdata_2023-01.parquet. Bounds are the 0.1st and 99.9th percentiles, widened outward.
+# - column passenger_count: tolerates 0.0014% of rows outside the proposed rules (headroom x2)
+# - column trip_distance: tolerates 0.2000% of rows outside the proposed rules (headroom x2)
+# - column RatecodeID: tolerates 0.0004% of rows outside the proposed rules (headroom x2)
+# - column PULocationID: tolerates 0.1100% of rows outside the proposed rules (headroom x2)
+# - column fare_amount: tolerates 0.2000% of rows outside the proposed rules (headroom x2)
+# - column extra: tolerates 0.1600% of rows outside the proposed rules (headroom x2)
+# - column mta_tax: tolerates 0.0510% of rows outside the proposed rules (headroom x2)
+# - column tip_amount: tolerates 0.2000% of rows outside the proposed rules (headroom x2)
+# - column tolls_amount: tolerates 0.2000% of rows outside the proposed rules (headroom x2)
+# - column total_amount: tolerates 0.2000% of rows outside the proposed rules (headroom x2)
+# - freshness, regex and cross-column checks are not proposed: they depend on how the data is produced
+dataset: "nyc_yellow_taxi_trips"
+version: "0.1.0"
+owner: "TODO-owner@example.com"
+min_rows: 1533383
+allow_extra_columns: true
+columns:
+  - {name: "VendorID", type: "int", nullable: false, allowed: [1, 2]}
+  - {name: "tpep_pickup_datetime", type: "timestamp", nullable: false}
+  - {name: "tpep_dropoff_datetime", type: "timestamp", nullable: false}
+  - {name: "passenger_count", type: "float", allowed: [0, 1, 2, 3, 4, 5, 6], max_violation_rate: 0.000014}
+  - {name: "trip_distance", type: "float", nullable: false, min: 0, max: 28.800000000000001, max_violation_rate: 0.002}
+  - {name: "RatecodeID", type: "float", allowed: [1, 2, 3, 4, 5, 99], max_violation_rate: 0.000004}
+  - {name: "store_and_fwd_flag", type: "string", allowed: ["N", "Y"]}
+  - {name: "PULocationID", type: "int", nullable: false, min: 4, max: 264, max_violation_rate: 0.0011}
+  - {name: "DOLocationID", type: "int", nullable: false, min: 1, max: 265}
+  - {name: "payment_type", type: "int", nullable: false, allowed: [0, 1, 2, 3, 4]}
+  - {name: "fare_amount", type: "float", nullable: false, min: -43, max: 140, max_violation_rate: 0.002}
+  - {name: "extra", type: "float", nullable: false, min: -2.5, max: 10, max_violation_rate: 0.0016}
+  - {name: "mta_tax", type: "float", nullable: false, min: -0.5, max: 0.5, max_violation_rate: 0.00051}
+  - {name: "tip_amount", type: "float", nullable: false, min: 0, max: 27.399999999999999, max_violation_rate: 0.002}
+  - {name: "tolls_amount", type: "float", nullable: false, min: 0, max: 20, max_violation_rate: 0.002}
+  - {name: "improvement_surcharge", type: "float", nullable: false, min: -1, max: 1}
+  - {name: "total_amount", type: "float", nullable: false, min: -52, max: 168, max_violation_rate: 0.002}
+  - {name: "congestion_surcharge", type: "float", min: -2.5, max: 2.5}
+  - {name: "airport_fee", type: "float", min: -1.25, max: 1.25}

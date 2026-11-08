@@ -1,0 +1,111 @@
+{
+ "hand_written": {
+  "rules": 29,
+  "failed_per_month": [
+   0,
+   4,
+   5,
+   4,
+   4,
+   5,
+   5,
+   5,
+   5,
+   5,
+   5,
+   5
+  ]
+ },
+ "headroom_1": {
+  "profile_seconds": 4.09,
+  "rules": 44,
+  "failed_per_month": [
+   0,
+   10,
+   14,
+   13,
+   13,
+   14,
+   14,
+   13,
+   13,
+   13,
+   13,
+   13
+  ],
+  "months_failing_after_january": 11,
+  "rules_failing_in_both_per_month": [
+   0,
+   3,
+   4,
+   3,
+   3,
+   4,
+   4,
+   4,
+   4,
+   4,
+   4,
+   4
+  ],
+  "rules_only_in_auto": [
+   "max:PULocationID",
+   "max:congestion_surcharge",
+   "max:extra",
+   "max:fare_amount",
+   "max:tip_amount",
+   "max:tolls_amount",
+   "max:total_amount",
+   "max:trip_distance",
+   "min:total_amount",
+   "schema:airport_fee"
+  ],
+  "rules_only_in_hand": [
+   "check:dropoff_not_before_pickup"
+  ],
+  "january_passes": true
+ },
+ "headroom_2": {
+  "profile_seconds": 4.22,
+  "rules": 44,
+  "failed_per_month": [
+   0,
+   5,
+   5,
+   5,
+   5,
+   6,
+   6,
+   5,
+   5,
+   5,
+   5,
+   5
+  ],
+  "months_failing_after_january": 11,
+  "rules_failing_in_both_per_month": [
+   0,
+   3,
+   4,
+   3,
+   3,
+   4,
+   3,
+   3,
+   3,
+   3,
+   3,
+   3
+  ],
+  "rules_only_in_auto": [
+   "max:congestion_surcharge",
+   "max:extra",
+   "schema:airport_fee"
+  ],
+  "rules_only_in_hand": [
+   "check:dropoff_not_before_pickup",
+   "min:fare_amount"
+  ],
+  "january_passes": true
+ }
+}
