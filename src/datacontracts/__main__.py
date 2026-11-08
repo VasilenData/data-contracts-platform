@@ -6,7 +6,9 @@ import argparse
 import json
 import sys
 from datetime import datetime
+from pathlib import Path
 
+from .annotations import github_annotations
 from .diff import bump_ok, diff_contracts, required_bump
 from .spec import ContractError, load_contract
 from .validate import validate
@@ -16,9 +18,13 @@ def _validate(args: argparse.Namespace) -> int:
     contract = load_contract(args.contract)
     now = datetime.fromisoformat(args.now) if args.now else None
     report = validate(contract, args.source, now=now)
-    if args.json:
+    if args.json or args.format == "json":
         print(json.dumps(report.as_dict(), indent=2))
     else:
+        if args.format == "github":
+            text = Path(args.contract).read_text()
+            for line in github_annotations(report, args.contract, text):
+                print(line)
         print(f"{report.dataset} v{report.version}: {report.rows:,} rows in {report.seconds:.2f}s")
         for r in report.results:
             mark = "ok  " if r.passed else ("WARN" if r.severity == "warn" else "FAIL")
@@ -46,7 +52,13 @@ def main(argv: list[str] | None = None) -> int:
     v = sub.add_parser("validate", help="check a parquet or csv file against a contract")
     v.add_argument("contract")
     v.add_argument("source")
-    v.add_argument("--json", action="store_true")
+    v.add_argument("--json", action="store_true", help="same as --format json")
+    v.add_argument(
+        "--format",
+        choices=["text", "json", "github"],
+        default="text",
+        help="github prints ::error annotations per failed rule, then the text summary",
+    )
     v.add_argument("--now", help="ISO time to measure freshness against")
     d = sub.add_parser("diff", help="classify changes between two contract versions")
     d.add_argument("old")
