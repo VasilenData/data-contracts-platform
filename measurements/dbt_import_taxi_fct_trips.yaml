@@ -1,0 +1,32 @@
+# Imported by `datacontracts dbt-import`. Review every rule before you rely on it.
+# From contracts/dbt_example/taxi_marts_schema.yml, model fct_trips. dbt tests with no contract equivalent are listed below.
+# - skipped relationships on pickup_zone_id: references ref('taxi_zone_lookup').LocationID; the validator checks one file, not joins
+# - skipped relationships on dropoff_zone_id: references ref('taxi_zone_lookup').LocationID; the validator checks one file, not joins
+# - note: accepted_range on distance_miles is strict in dbt; imported as inclusive, a slightly weaker rule
+# - note: accepted_range on duration_min is strict in dbt; imported as inclusive, a slightly weaker rule
+# - note: accepted_range on total_amount is strict in dbt; imported as inclusive, a slightly weaker rule
+dataset: "fct_trips"
+version: "0.1.0"
+owner: "TODO-owner@example.com"
+allow_extra_columns: true
+columns:
+  - {name: "trip_id", type: "string", nullable: false}
+  - {name: "source_month", type: "string", nullable: false}
+  - {name: "pickup_at", type: "timestamp", nullable: false}
+  - {name: "dropoff_at", type: "timestamp"}
+  - {name: "pickup_date", type: "date"}
+  - {name: "pickup_hour", type: "int", min: 0, max: 23}
+  - {name: "pickup_dow", type: "int", min: 1, max: 7}
+  - {name: "pickup_zone_id", type: "int"}
+  - {name: "dropoff_zone_id", type: "int"}
+  - {name: "pickup_borough", type: "string"}
+  - {name: "pickup_zone", type: "string"}
+  - {name: "dropoff_borough", type: "string"}
+  - {name: "passenger_count", type: "float"}
+  - {name: "distance_miles", type: "float", min: 0, max: 200}
+  - {name: "duration_min", type: "float", min: 0, max: 360}
+  - {name: "avg_speed_mph", type: "float"}
+  - {name: "fare_amount", type: "float", min: 0}
+  - {name: "tip_amount", type: "float"}
+  - {name: "total_amount", type: "float", min: 0}
+  - {name: "tip_pct", type: "float"}

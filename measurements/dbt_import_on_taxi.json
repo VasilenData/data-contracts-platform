@@ -1,0 +1,124 @@
+{
+  "schema_file": "contracts/dbt_example/taxi_marts_schema.yml",
+  "tests_found": 11,
+  "tests_imported": 9,
+  "skipped_notes": [
+    "skipped relationships on pickup_zone_id: references ref('taxi_zone_lookup').LocationID; the validator checks one file, not joins",
+    "skipped relationships on dropoff_zone_id: references ref('taxi_zone_lookup').LocationID; the validator checks one file, not joins",
+    "note: accepted_range on distance_miles is strict in dbt; imported as inclusive, a slightly weaker rule",
+    "note: accepted_range on duration_min is strict in dbt; imported as inclusive, a slightly weaker rule",
+    "note: accepted_range on total_amount is strict in dbt; imported as inclusive, a slightly weaker rule"
+  ],
+  "contract_columns": 20,
+  "months": [
+    {
+      "month": "2023-01",
+      "rows": 2995660,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 3.9,
+      "validate_seconds": 0.05
+    },
+    {
+      "month": "2023-02",
+      "rows": 2847716,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 3.4,
+      "validate_seconds": 0.05
+    },
+    {
+      "month": "2023-03",
+      "rows": 3325087,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 5.9,
+      "validate_seconds": 0.05
+    },
+    {
+      "month": "2023-04",
+      "rows": 3217598,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 4.1,
+      "validate_seconds": 0.06
+    },
+    {
+      "month": "2023-05",
+      "rows": 3434790,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 4.3,
+      "validate_seconds": 0.06
+    },
+    {
+      "month": "2023-06",
+      "rows": 3228441,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 4.0,
+      "validate_seconds": 0.06
+    },
+    {
+      "month": "2023-07",
+      "rows": 2826329,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 3.7,
+      "validate_seconds": 0.05
+    },
+    {
+      "month": "2023-08",
+      "rows": 2735604,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 2.9,
+      "validate_seconds": 0.04
+    },
+    {
+      "month": "2023-09",
+      "rows": 2719104,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 1.7,
+      "validate_seconds": 0.04
+    },
+    {
+      "month": "2023-10",
+      "rows": 3364181,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 2.3,
+      "validate_seconds": 0.07
+    },
+    {
+      "month": "2023-11",
+      "rows": 3200197,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 2.0,
+      "validate_seconds": 0.05
+    },
+    {
+      "month": "2023-12",
+      "rows": 3261534,
+      "rules": 13,
+      "failed": [],
+      "build_seconds": 2.7,
+      "validate_seconds": 0.06
+    }
+  ],
+  "injected_defects": {
+    "injected": {
+      "null pickup_at": 100,
+      "pickup_hour 25": 50,
+      "duplicate trip_id": 50,
+      "distance -1": 50
+    },
+    "rules_failed": {
+      "not_null:pickup_at": 100,
+      "max:pickup_hour": 50,
+      "min:distance_miles": 50
+    }
+  }
+}
