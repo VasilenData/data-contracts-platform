@@ -122,8 +122,14 @@ def parse_contract(raw: dict[str, Any]) -> Contract:
         severity = c.get("severity", "error")
         if severity not in {"error", "warn"}:
             raise ContractError(f"check {c.get('name')}: severity must be error or warn")
-        checks.append(Check(c["name"], c["expr"], severity,
-                            _number(c.get("max_violation_rate", 0.0), "max_violation_rate", maximum=1)))
+        checks.append(
+            Check(
+                c["name"],
+                c["expr"],
+                severity,
+                _number(c.get("max_violation_rate", 0.0), "max_violation_rate", maximum=1),
+            )
+        )
     min_rows = raw.get("min_rows", 0)
     if isinstance(min_rows, bool) or not isinstance(min_rows, int) or min_rows < 0:
         raise ContractError("min_rows must be a non-negative integer")
