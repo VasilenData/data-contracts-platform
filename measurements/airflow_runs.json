@@ -1,0 +1,18 @@
+{
+ "run_real_data": {
+  "command": "airflow dags test contract_check 2026-11-08",
+  "airflow": "2.10.5",
+  "files": 12,
+  "success": 1,
+  "failed": 11,
+  "retries": 0,
+  "alerts_sent": 11
+ },
+ "run_missing_files": {
+  "data_dir": "/nonexistent",
+  "retry_delay_seconds": 1,
+  "retry_attempts_marked": 36,
+  "failed_after_retries": 12,
+  "alerts_sent": 12
+ }
+}

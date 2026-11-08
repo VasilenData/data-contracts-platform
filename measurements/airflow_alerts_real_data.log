@@ -1,0 +1,85 @@
+2026-11-08T03:47:48
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-05.parquet: 4 rule(s), 3,513,649 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 416 violations (0.0118%, allowed 0.0000%)
+- check:dropoff_not_before_pickup: 68 violations (0.0019%, allowed 0.0010%)
+
+2026-11-08T03:47:49
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-12.parquet: 5 rule(s), 3,376,567 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 419 violations (0.0124%, allowed 0.0000%)
+- min:fare_amount: 42,642 violations (1.2629%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 67 violations (0.0020%, allowed 0.0010%)
+
+2026-11-08T03:47:50
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-02.parquet: 4 rule(s), 2,913,955 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 1,201 violations (0.0412%, allowed 0.0000%)
+- check:dropoff_not_before_pickup: 276 violations (0.0095%, allowed 0.0010%)
+
+2026-11-08T03:47:51
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-08.parquet: 5 rule(s), 2,824,209 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 621 violations (0.0220%, allowed 0.0000%)
+- min:fare_amount: 31,308 violations (1.1086%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 146 violations (0.0052%, allowed 0.0010%)
+
+2026-11-08T03:47:52
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-11.parquet: 5 rule(s), 3,339,715 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 454 violations (0.0136%, allowed 0.0000%)
+- min:fare_amount: 36,858 violations (1.1036%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 885 violations (0.0265%, allowed 0.0010%)
+
+2026-11-08T03:47:55
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-04.parquet: 4 rule(s), 3,288,250 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 438 violations (0.0133%, allowed 0.0000%)
+- check:dropoff_not_before_pickup: 91 violations (0.0028%, allowed 0.0010%)
+
+2026-11-08T03:47:56
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-10.parquet: 5 rule(s), 3,522,285 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 502 violations (0.0143%, allowed 0.0000%)
+- min:fare_amount: 37,100 violations (1.0533%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 85 violations (0.0024%, allowed 0.0010%)
+
+2026-11-08T03:47:57
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-07.parquet: 5 rule(s), 2,907,108 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 724 violations (0.0249%, allowed 0.0000%)
+- min:fare_amount: 31,161 violations (1.0719%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 162 violations (0.0056%, allowed 0.0010%)
+
+2026-11-08T03:47:59
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-03.parquet: 5 rule(s), 3,403,766 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 1,928 violations (0.0566%, allowed 0.0000%)
+- allowed:payment_type: 1 violations (0.0000%, allowed 0.0000%)
+- check:dropoff_not_before_pickup: 357 violations (0.0105%, allowed 0.0010%)
+
+2026-11-08T03:48:00
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-06.parquet: 5 rule(s), 3,307,234 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 1,113 violations (0.0337%, allowed 0.0000%)
+- allowed:payment_type: 1 violations (0.0000%, allowed 0.0000%)
+- check:dropoff_not_before_pickup: 189 violations (0.0057%, allowed 0.0010%)
+
+2026-11-08T03:48:01
+Contract nyc_yellow_taxi_trips v1.0.0 FAILED on yellow_tripdata_2023-09.parquet: 5 rule(s), 2,846,722 rows.
+- schema:passenger_count: 1 violations (100.0000%, allowed 0.0000%)
+- schema:RatecodeID: 1 violations (100.0000%, allowed 0.0000%)
+- allowed:VendorID: 852 violations (0.0299%, allowed 0.0000%)
+- min:fare_amount: 29,566 violations (1.0386%, allowed 1.0000%)
+- check:dropoff_not_before_pickup: 146 violations (0.0051%, allowed 0.0010%)
+
