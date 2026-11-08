@@ -192,8 +192,11 @@ def validate(
             alias = f"v{len(plan)}"
             selects.append(f"count({q(c.name)}) - count(DISTINCT {q(c.name)}) AS {alias}")
             plan.append((f"unique:{c.name}", alias, "duplicate values", c.max_violation_rate, ""))
+    severity_by_alias = {}
     for chk in contract.checks:
-        plan.append((f"check:{chk.name}", f"v{len(plan)}", chk.expr, chk.max_violation_rate, f"({chk.expr}) IS FALSE"))
+        alias = f"v{len(plan)}"
+        severity_by_alias[alias] = chk.severity
+        plan.append((f"check:{chk.name}", alias, chk.expr, chk.max_violation_rate, f"({chk.expr}) IS FALSE"))
     for _, alias, _, _, pred in plan:
         if pred:
             selects.append(f"coalesce(sum(CASE WHEN {pred} THEN 1 ELSE 0 END), 0) AS {alias}")
@@ -204,9 +207,8 @@ def validate(
     row = dict(zip([d[0] for d in cur.description], cur.fetchone(), strict=True))
     n = int(row["n"])
 
-    sev = {f"check:{c.name}": c.severity for c in contract.checks}
     for rule, alias, detail, allowed, pred in plan:
-        res = RuleResult(rule, sev.get(rule, "error"), int(row[alias]), n, allowed, detail)
+        res = RuleResult(rule, severity_by_alias.get(alias, "error"), int(row[alias]), n, allowed, detail)
         if res.violations and pred and sample_size:
             res.samples = _samples(con, rel, pred, sample_size)
         results.append(res)

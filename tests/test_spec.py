@@ -18,6 +18,24 @@ def test_minimal_contract_parses():
     assert c.version_tuple() == (1, 0, 0)
 
 
+@pytest.mark.parametrize("name", ["", "   ", None, 42])
+def test_check_names_must_be_nonempty_strings(name):
+    raw = base()
+    raw["checks"] = [{"name": name, "expr": "a > 0"}]
+    with pytest.raises(ContractError, match="check name"):
+        parse_contract(raw)
+
+
+def test_duplicate_check_cannot_replace_blocking_severity():
+    raw = base()
+    raw["checks"] = [
+        {"name": "positive", "expr": "a > 0", "severity": "error"},
+        {"name": "positive", "expr": "true", "severity": "warn"},
+    ]
+    with pytest.raises(ContractError, match="duplicate check"):
+        parse_contract(raw)
+
+
 @pytest.mark.parametrize("key", ["dataset", "version", "owner", "columns"])
 def test_missing_required_key(key):
     raw = base()
