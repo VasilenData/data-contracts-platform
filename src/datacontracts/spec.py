@@ -119,6 +119,10 @@ def parse_contract(raw: dict[str, Any]) -> Contract:
         freshness = Freshness(fresh["column"], _number(fresh["max_age_hours"], "max_age_hours"))
     checks = []
     for c in raw.get("checks", []):
+        if not isinstance(c.get("name"), str) or not c["name"].strip():
+            raise ContractError("check name must be a non-empty string")
+        if any(existing.name == c["name"] for existing in checks):
+            raise ContractError(f"duplicate check name: {c['name']}")
         severity = c.get("severity", "error")
         if severity not in {"error", "warn"}:
             raise ContractError(f"check {c.get('name')}: severity must be error or warn")
