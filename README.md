@@ -31,7 +31,7 @@ I wrote `contracts/yellow_taxi_v1.yaml` by profiling **January 2023** of the pub
 
 What the real files showed:
 
-- **Schema drift from February.** `passenger_count` and `RatecodeID` are stored as doubles in January and as integers in every later file. The contract pinned them as `float`, so the schema rule fails, which is the right call for a consumer that reads those columns as doubles. When a column fails its schema rule the validator skips that column's value rules, because comparing values of the wrong type would be noise.
+- **Schema drift from February.** `passenger_count` and `RatecodeID` are stored as doubles in January and as integers in every later file. The contract pinned them as `float`, so the schema rule flags a deviation from that declared type. When a column fails its schema rule the validator skips that column's value rules, because comparing values of the wrong type would be noise.
 - **A new vendor code.** `VendorID` 6 first appears in February (1,201 rows) and keeps appearing every month. The contract allows only 1 and 2 with no tolerance, so it fails every month after January.
 - **Negative fares crept over the tolerance.** January has 0.817% negative fares and I set a 1% tolerance. From July the rate is above 1% in every month (1.04% to 1.26%).
 - **Dropoff before pickup** is 3 rows in January (about 0.0001%) and 67 to 885 rows later, over the 0.001% tolerance every month.
@@ -160,9 +160,9 @@ Differences to keep in mind: dbt reports failing groups and the validator counts
 
 ## Run it under Airflow
 
-`airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a bad month fails alone and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
+`airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a month that violates the contract fails independently and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
 
-- **Two kinds of failure, handled differently.** A missing file or I/O error is transient, so the task retries 3 times with exponential backoff. A contract violation means the data arrived and is wrong, so waiting cannot fix it: the task sends the alert and fails at once through `AirflowFailException`, with no retries.
+- **Two kinds of failure, handled differently.** A missing file or I/O error may be transient, so the task retries 3 times with exponential backoff. A contract violation means the file does not meet the configured rules; retrying the same unchanged file will not resolve the violation. The task sends the alert and fails at once through `AirflowFailException`, with no retries. The rules or the source data need review; a failed check alone does not establish which one should change.
 - **The alert says what broke.** One message per failed file, listing each blocking rule with its violation count, rate and allowed rate. It is always appended to a log file (`DATACONTRACTS_ALERT_LOG`) and also posted to a Slack-style webhook if `DATACONTRACTS_WEBHOOK` is set. A broken webhook is reported, not raised, so it cannot hide the original failure.
 
 Measured with `airflow dags test` on Airflow 2.10.5 (`measurements/airflow_runs.json`, `measurements/airflow_alerts_real_data.log`):
