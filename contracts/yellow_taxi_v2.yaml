@@ -1,0 +1,26 @@
+# v1.0.0 plus additive changes only: two new nullable columns, a tighter fare cap.
+dataset: nyc_yellow_taxi_trips
+version: 1.1.0
+owner: data-platform@example.com
+min_rows: 1000000
+allow_extra_columns: true
+columns:
+  - {name: VendorID, type: int, nullable: false, allowed: [1, 2]}
+  - {name: tpep_pickup_datetime, type: timestamp, nullable: false}
+  - {name: tpep_dropoff_datetime, type: timestamp, nullable: false}
+  - {name: passenger_count, type: float, min: 0, max: 6, max_violation_rate: 0.0001}
+  - {name: trip_distance, type: float, nullable: false, min: 0, max: 100, max_violation_rate: 0.0001}
+  - {name: RatecodeID, type: float, allowed: [1, 2, 3, 4, 5, 6], max_violation_rate: 0.01}
+  - {name: store_and_fwd_flag, type: string, allowed: ["N", "Y"]}
+  - {name: PULocationID, type: int, nullable: false, min: 1, max: 265}
+  - {name: DOLocationID, type: int, nullable: false, min: 1, max: 265}
+  - {name: payment_type, type: int, nullable: false, allowed: [0, 1, 2, 3, 4]}
+  - {name: fare_amount, type: float, nullable: false, min: 0, max: 400, max_violation_rate: 0.01}
+  - {name: tip_amount, type: float, nullable: false, min: 0, max_violation_rate: 0.001}
+  - {name: total_amount, type: float, nullable: false}
+  - {name: congestion_surcharge, type: float}
+  - {name: airport_fee, type: float}
+checks:
+  - {name: dropoff_not_before_pickup, expr: "tpep_dropoff_datetime >= tpep_pickup_datetime", max_violation_rate: 0.00001}
+  - {name: pickup_in_2023, expr: "year(tpep_pickup_datetime) = 2023", max_violation_rate: 0.0001}
+  - {name: total_covers_fare, expr: "total_amount >= fare_amount", severity: warn, max_violation_rate: 0.01}
