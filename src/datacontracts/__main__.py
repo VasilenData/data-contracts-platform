@@ -1,4 +1,4 @@
-"""Command line: python -m datacontracts validate|diff|profile ..."""
+"""Command line: python -m datacontracts validate|diff|profile|dbt-import ..."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .annotations import github_annotations
+from .dbt_import import dbt_contract_yaml, import_dbt_report
 from .diff import bump_ok, diff_contracts, required_bump
 from .profile import contract_yaml, profile_contract
 from .spec import ContractError, load_contract, parse_contract
@@ -61,6 +62,20 @@ def _profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def _dbt_import(args: argparse.Namespace) -> int:
+    r = import_dbt_report(args.schema, model=args.model, dataset=args.dataset, owner=args.owner, source=args.source)
+    text = dbt_contract_yaml(r.raw, args.schema, r.model, r.notes)
+    if args.out:
+        Path(args.out).write_text(text)
+    else:
+        print(text, end="")
+    print(
+        f"imported {r.imported} of {r.found} tests, skipped {r.found - r.imported}; see the comments at the top",
+        file=sys.stderr,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="datacontracts")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -86,9 +101,16 @@ def main(argv: list[str] | None = None) -> int:
         "--headroom", type=float, default=2.0, help="multiply each tolerance by this (default 2, minimum 1)"
     )
     pr.add_argument("--out", help="write the YAML here instead of stdout")
+    db = sub.add_parser("dbt-import", help="draft a contract from a dbt model's schema.yml")
+    db.add_argument("schema", help="path to a dbt schema.yml")
+    db.add_argument("--model", help="model name (needed when the file has several)")
+    db.add_argument("--dataset", help="dataset name (default: the model name)")
+    db.add_argument("--owner", help="owner (default: the model's meta.owner, else a TODO placeholder)")
+    db.add_argument("--source", help="parquet or csv file to read types from for columns without a data_type")
+    db.add_argument("--out", help="write the YAML here instead of stdout")
     args = p.parse_args(argv)
     try:
-        return {"validate": _validate, "diff": _diff, "profile": _profile}[args.cmd](args)
+        return {"validate": _validate, "diff": _diff, "profile": _profile, "dbt-import": _dbt_import}[args.cmd](args)
     except (ContractError, FileNotFoundError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
