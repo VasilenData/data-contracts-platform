@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -128,7 +128,8 @@ def _column_predicates(c: Column) -> list[tuple[str, str, str]]:
         out.append((f"max:{c.name}", f"{col} > {lit(c.max)}", f"value above {c.max}"))
     if c.allowed is not None:
         values = ", ".join(lit(v) for v in c.allowed)
-        out.append((f"allowed:{c.name}", f"{col} IS NOT NULL AND {col} NOT IN ({values})", "value not allowed"))
+        predicate = f"{col} IS NOT NULL" + (f" AND {col} NOT IN ({values})" if c.allowed else "")
+        out.append((f"allowed:{c.name}", predicate, "value not allowed"))
     if c.regex is not None:
         out.append(
             (
@@ -148,8 +149,10 @@ def validate(
     sample_size: int = 3,
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> Report:
+    if con is None:
+        with duckdb.connect() as owned:
+            return validate(contract, source, now=now, sample_size=sample_size, con=owned)
     start = time.perf_counter()
-    con = con or duckdb.connect()
     rel = relation(source)
     described = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {rel}").fetchall()}
     results: list[RuleResult] = []
@@ -194,7 +197,8 @@ def validate(
     for _, alias, _, _, pred in plan:
         if pred:
             selects.append(f"coalesce(sum(CASE WHEN {pred} THEN 1 ELSE 0 END), 0) AS {alias}")
-    if contract.freshness:
+    freshness_ready = contract.freshness and any(c.name == contract.freshness.column for c in present)
+    if freshness_ready:
         selects.append(f"max({q(contract.freshness.column)}) AS newest")
     cur = con.execute(f"SELECT {', '.join(selects)} FROM {rel}")
     row = dict(zip([d[0] for d in cur.description], cur.fetchone(), strict=True))
@@ -214,12 +218,16 @@ def validate(
                 "min_rows", "error", short, max(n, 1), 0.0, f"expected at least {contract.min_rows} rows, found {n}"
             )
         )
-    if contract.freshness:
+    if freshness_ready:
         newest = row["newest"]
         now = now or datetime.now(timezone.utc).replace(tzinfo=None)
+        if now.tzinfo is not None:
+            now = now.astimezone(timezone.utc).replace(tzinfo=None)
         if newest is None:
             results.append(RuleResult("freshness", "error", 1, 1, 0.0, "no timestamps to measure"))
         else:
+            if isinstance(newest, date) and not isinstance(newest, datetime):
+                newest = datetime.combine(newest, datetime.min.time())
             if getattr(newest, "tzinfo", None) is not None:
                 newest = newest.astimezone(timezone.utc).replace(tzinfo=None)
             age = (now - newest).total_seconds() / 3600

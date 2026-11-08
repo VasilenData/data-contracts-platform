@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("airflow")
+pytest.importorskip("airflow.models")
 
 from airflow.models import DagBag
 
