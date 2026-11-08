@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datacontracts"
+version = "1.0.0"
+description = "YAML data contracts: DuckDB validator and breaking-change detector"
+requires-python = ">=3.10"
+dependencies = ["duckdb>=1.0", "pyyaml>=6"]
+license = { text = "MIT" }
+
+[project.scripts]
+datacontracts = "datacontracts.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "RUF"]
+ignore = ["E501"]  # ruff format owns line width; long f-string messages are fine
