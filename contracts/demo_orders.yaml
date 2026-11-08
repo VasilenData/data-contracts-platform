@@ -1,0 +1,10 @@
+# Deliberately strict contract used by CI to show failed rules as GitHub annotations.
+# The sample data is generated in the CI step and breaks three rules.
+dataset: demo_orders
+version: 1.0.0
+owner: data-platform@example.com
+min_rows: 3
+columns:
+  - {name: order_id, type: int, nullable: false, unique: true}
+  - {name: amount, type: float, min: 0}
+  - {name: status, type: string, allowed: [paid, refunded]}
