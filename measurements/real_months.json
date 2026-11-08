@@ -1,0 +1,879 @@
+{
+  "contract": "contracts/yellow_taxi_v1.yaml",
+  "contract_fitted_on": "2023-01",
+  "machine": "x86_64, Python 3.10.12, DuckDB 1.5.6",
+  "months": [
+    {
+      "month": "2023-01",
+      "rows": 3066766,
+      "best_seconds": 0.782,
+      "median_seconds": 0.789,
+      "rules_evaluated": 29,
+      "rows_per_second": 3922325,
+      "ok": true,
+      "failures": [],
+      "rates": {
+        "max:passenger_count": 7e-06,
+        "max:trip_distance": 2.9e-05,
+        "allowed:RatecodeID": 0.004274,
+        "min:fare_amount": 0.008168,
+        "max:fare_amount": 8e-06,
+        "min:tip_amount": 7.3e-05,
+        "check:dropoff_not_before_pickup": 1e-06,
+        "check:pickup_in_2023": 1.2e-05,
+        "check:total_covers_fare": 0.008159
+      }
+    },
+    {
+      "month": "2023-02",
+      "rows": 2913955,
+      "best_seconds": 0.518,
+      "median_seconds": 0.52,
+      "rules_evaluated": 28,
+      "rows_per_second": 5629591,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 1201,
+          "rate": 0.000412,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 276,
+          "rate": 9.5e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000412,
+        "max:trip_distance": 3.2e-05,
+        "min:fare_amount": 0.008498,
+        "max:fare_amount": 9e-06,
+        "min:tip_amount": 8.8e-05,
+        "check:dropoff_not_before_pickup": 9.5e-05,
+        "check:pickup_in_2023": 2e-06,
+        "check:total_covers_fare": 0.008485
+      }
+    },
+    {
+      "month": "2023-03",
+      "rows": 3403766,
+      "best_seconds": 0.607,
+      "median_seconds": 0.607,
+      "rules_evaluated": 28,
+      "rows_per_second": 5611725,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 1928,
+          "rate": 0.000566,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "allowed:payment_type",
+          "severity": "error",
+          "violations": 1,
+          "rate": 0.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 357,
+          "rate": 0.000105,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000566,
+        "max:trip_distance": 3.4e-05,
+        "allowed:payment_type": 0.0,
+        "min:fare_amount": 0.008719,
+        "max:fare_amount": 9e-06,
+        "min:tip_amount": 7.3e-05,
+        "check:dropoff_not_before_pickup": 0.000105,
+        "check:pickup_in_2023": 3e-06,
+        "check:total_covers_fare": 0.008685
+      }
+    },
+    {
+      "month": "2023-04",
+      "rows": 3288250,
+      "best_seconds": 0.585,
+      "median_seconds": 0.587,
+      "rules_evaluated": 28,
+      "rows_per_second": 5620615,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 438,
+          "rate": 0.000133,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 91,
+          "rate": 2.8e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000133,
+        "max:trip_distance": 3e-05,
+        "min:fare_amount": 0.00912,
+        "max:fare_amount": 1.2e-05,
+        "min:tip_amount": 4.4e-05,
+        "check:dropoff_not_before_pickup": 2.8e-05,
+        "check:pickup_in_2023": 2e-06,
+        "check:total_covers_fare": 0.009011
+      }
+    },
+    {
+      "month": "2023-05",
+      "rows": 3513649,
+      "best_seconds": 0.629,
+      "median_seconds": 0.651,
+      "rules_evaluated": 28,
+      "rows_per_second": 5588305,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 416,
+          "rate": 0.000118,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 68,
+          "rate": 1.9e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000118,
+        "max:trip_distance": 3.8e-05,
+        "min:fare_amount": 0.009136,
+        "max:fare_amount": 1e-05,
+        "min:tip_amount": 3.7e-05,
+        "check:dropoff_not_before_pickup": 1.9e-05,
+        "check:pickup_in_2023": 1e-06,
+        "check:total_covers_fare": 0.008999
+      }
+    },
+    {
+      "month": "2023-06",
+      "rows": 3307234,
+      "best_seconds": 0.603,
+      "median_seconds": 0.608,
+      "rules_evaluated": 28,
+      "rows_per_second": 5486988,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 1113,
+          "rate": 0.000337,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "allowed:payment_type",
+          "severity": "error",
+          "violations": 1,
+          "rate": 0.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 189,
+          "rate": 5.7e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000337,
+        "max:trip_distance": 4.4e-05,
+        "allowed:payment_type": 0.0,
+        "min:fare_amount": 0.009506,
+        "max:fare_amount": 1.4e-05,
+        "min:tip_amount": 3.2e-05,
+        "check:dropoff_not_before_pickup": 5.7e-05,
+        "check:pickup_in_2023": 2e-06,
+        "check:total_covers_fare": 0.009324
+      }
+    },
+    {
+      "month": "2023-07",
+      "rows": 2907108,
+      "best_seconds": 0.515,
+      "median_seconds": 0.518,
+      "rules_evaluated": 28,
+      "rows_per_second": 5650166,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 724,
+          "rate": 0.000249,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 31161,
+          "rate": 0.010719,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 162,
+          "rate": 5.6e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 30625,
+          "rate": 0.010535,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000249,
+        "max:trip_distance": 4.8e-05,
+        "min:fare_amount": 0.010719,
+        "max:fare_amount": 1.8e-05,
+        "min:tip_amount": 4.2e-05,
+        "check:dropoff_not_before_pickup": 5.6e-05,
+        "check:pickup_in_2023": 1e-06,
+        "check:total_covers_fare": 0.010535
+      }
+    },
+    {
+      "month": "2023-08",
+      "rows": 2824209,
+      "best_seconds": 0.219,
+      "median_seconds": 0.221,
+      "rules_evaluated": 28,
+      "rows_per_second": 12870277,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 621,
+          "rate": 0.00022,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 31308,
+          "rate": 0.011086,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 146,
+          "rate": 5.2e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 30736,
+          "rate": 0.010883,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.00022,
+        "max:trip_distance": 4.4e-05,
+        "min:fare_amount": 0.011086,
+        "max:fare_amount": 2.2e-05,
+        "min:tip_amount": 3.4e-05,
+        "check:dropoff_not_before_pickup": 5.2e-05,
+        "check:pickup_in_2023": 2e-06,
+        "check:total_covers_fare": 0.010883
+      }
+    },
+    {
+      "month": "2023-09",
+      "rows": 2846722,
+      "best_seconds": 0.219,
+      "median_seconds": 0.223,
+      "rules_evaluated": 28,
+      "rows_per_second": 13011072,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 852,
+          "rate": 0.000299,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 29566,
+          "rate": 0.010386,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 146,
+          "rate": 5.1e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 29085,
+          "rate": 0.010217,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000299,
+        "max:trip_distance": 4.5e-05,
+        "min:fare_amount": 0.010386,
+        "max:fare_amount": 1.3e-05,
+        "min:tip_amount": 3.7e-05,
+        "check:dropoff_not_before_pickup": 5.1e-05,
+        "check:pickup_in_2023": 2e-06,
+        "check:total_covers_fare": 0.010217
+      }
+    },
+    {
+      "month": "2023-10",
+      "rows": 3522285,
+      "best_seconds": 0.22,
+      "median_seconds": 0.228,
+      "rules_evaluated": 28,
+      "rows_per_second": 15996477,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 502,
+          "rate": 0.000143,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 37100,
+          "rate": 0.010533,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 85,
+          "rate": 2.4e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 36745,
+          "rate": 0.010432,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000143,
+        "max:trip_distance": 2.6e-05,
+        "min:fare_amount": 0.010533,
+        "max:fare_amount": 9e-06,
+        "min:tip_amount": 3.7e-05,
+        "check:dropoff_not_before_pickup": 2.4e-05,
+        "check:pickup_in_2023": 1e-06,
+        "check:total_covers_fare": 0.010432
+      }
+    },
+    {
+      "month": "2023-11",
+      "rows": 3339715,
+      "best_seconds": 0.223,
+      "median_seconds": 0.223,
+      "rules_evaluated": 28,
+      "rows_per_second": 14990103,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 454,
+          "rate": 0.000136,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 36858,
+          "rate": 0.011036,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 885,
+          "rate": 0.000265,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 36545,
+          "rate": 0.010943,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000136,
+        "max:trip_distance": 2.4e-05,
+        "min:fare_amount": 0.011036,
+        "max:fare_amount": 1.3e-05,
+        "min:tip_amount": 3.5e-05,
+        "check:dropoff_not_before_pickup": 0.000265,
+        "check:pickup_in_2023": 0.0,
+        "check:total_covers_fare": 0.010943
+      }
+    },
+    {
+      "month": "2023-12",
+      "rows": 3376567,
+      "best_seconds": 0.23,
+      "median_seconds": 0.233,
+      "rules_evaluated": 28,
+      "rows_per_second": 14670883,
+      "ok": false,
+      "failures": [
+        {
+          "rule": "schema:passenger_count",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "schema:RatecodeID",
+          "severity": "error",
+          "violations": 1,
+          "rate": 1.0,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "expected float, found BIGINT",
+          "samples": []
+        },
+        {
+          "rule": "allowed:VendorID",
+          "severity": "error",
+          "violations": 419,
+          "rate": 0.000124,
+          "allowed_rate": 0.0,
+          "passed": false,
+          "detail": "value not allowed",
+          "samples": []
+        },
+        {
+          "rule": "min:fare_amount",
+          "severity": "error",
+          "violations": 42642,
+          "rate": 0.012629,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "value below 0",
+          "samples": []
+        },
+        {
+          "rule": "check:dropoff_not_before_pickup",
+          "severity": "error",
+          "violations": 67,
+          "rate": 2e-05,
+          "allowed_rate": 1e-05,
+          "passed": false,
+          "detail": "tpep_dropoff_datetime >= tpep_pickup_datetime",
+          "samples": []
+        },
+        {
+          "rule": "check:total_covers_fare",
+          "severity": "warn",
+          "violations": 39595,
+          "rate": 0.011726,
+          "allowed_rate": 0.01,
+          "passed": false,
+          "detail": "total_amount >= fare_amount",
+          "samples": []
+        }
+      ],
+      "rates": {
+        "schema:passenger_count": 1.0,
+        "schema:RatecodeID": 1.0,
+        "allowed:VendorID": 0.000124,
+        "max:trip_distance": 1.9e-05,
+        "min:fare_amount": 0.012629,
+        "max:fare_amount": 1.2e-05,
+        "min:tip_amount": 3.2e-05,
+        "check:dropoff_not_before_pickup": 2e-05,
+        "check:pickup_in_2023": 3e-06,
+        "check:total_covers_fare": 0.011726
+      }
+    }
+  ],
+  "design_comparison": {
+    "parquet_jan_3.07M_rows": {
+      "runs": 5,
+      "single_scan_median_s": 0.78,
+      "one_query_per_rule_median_s": 0.566,
+      "rules": 28,
+      "speedup_of_single_scan": 0.73
+    },
+    "csv_500k_row_sample_of_jan": {
+      "runs": 5,
+      "single_scan_median_s": 0.275,
+      "one_query_per_rule_median_s": 3.374,
+      "rules": 28,
+      "speedup_of_single_scan": 12.25
+    }
+  }
+}
