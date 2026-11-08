@@ -70,6 +70,7 @@ pip install .            # or: pip install -r requirements.txt and run with PYTH
 datacontracts validate contracts/yellow_taxi_v1.yaml yellow_tripdata_2023-01.parquet
 datacontracts validate contracts/yellow_taxi_v1.yaml data.csv --json
 datacontracts validate contracts/yellow_taxi_v1.yaml data.parquet --format github   # ::error per failed rule
+datacontracts profile data.parquet --out contract.yaml   # propose a first contract to review
 datacontracts diff old_contract.yaml new_contract.yaml
 ```
 
@@ -114,6 +115,29 @@ Real output for March 2023 against the January contract (`measurements/github_an
 
 Rules with `severity: warn` become `::warning`. Sample rows are not printed, so values from the data do not end up in CI logs. Message text is escaped, so a check expression containing a newline cannot start a second command. The command syntax is from GitHub's workflow-commands documentation and the escaping is the same as `escapeData` and `escapeProperty` in the `actions/toolkit` source. CI runs it on a deliberately failing sample (`contracts/demo_orders.yaml`) so the annotations show on the run summary; that step tolerates exit code 1 and fails on anything else. The summary showed `allowed:status: contracts/demo_orders.yaml#L10` with the message, so the line numbers and the escaping render as intended. The demo's red annotations on a green run are intentional. Limits: line numbers come from a text match on `name:` in the YAML, so a contract that defines the same column name twice would point at the first match.
 
+## Propose a first contract
+
+`datacontracts profile FILE` reads a parquet or csv file and prints a contract to start from. It is a draft to review, not a finished contract. The rules, all computed from the file:
+
+- **Types and nulls:** the type of every column, and `nullable: false` only if the file has no nulls.
+- **Bounds:** `min` and `max` from the 0.1st and 99.9th percentiles, widened outward onto a tidy step.
+- **Allowed values:** a list for columns with at most 12 distinct values. A value under 0.1% of rows is left out, so a new code is flagged. A column with an allowed list gets no separate bounds.
+- **Unique:** only for int or string columns that are unique across at least 100 rows.
+- **Row floor:** `min_rows` is half the profiled row count.
+- **Tolerance:** each column's `max_violation_rate` is the exact share of profiled rows outside its proposed rules, times `--headroom` (default 2, minimum 1), rounded up. So the proposal passes on its own file, and the command checks that before it prints anything.
+
+Not proposed: freshness, regex and cross-column checks, because they depend on how the data is produced. The contract format cannot cap a column's null rate, so a column with nulls is only marked nullable.
+
+**How good is the proposal?** I profiled January 2023 (3.07M rows, 4.22 s) and judged all 12 months, the same test as the hand-written v1 contract (`scripts/profile_vs_handwritten.py`, `measurements/profile_vs_handwritten.json`; the headroom 2 proposal itself is `measurements/auto_contract_2023-01.yaml`). I predicted before running it that at least 10 of the 11 later months would fail. All 11 did.
+
+| Contract | Rules | Rules failing per month, Feb to Dec | Failing in both the proposal and v1 |
+|---|---:|---|---|
+| Hand-written v1 | 29 | 4 to 5 | n/a |
+| Proposed, headroom 1 | 44 | 10 to 14 | 3 to 4 |
+| Proposed, headroom 2 (default) | 44 | 5 to 6 | 3 to 4 |
+
+My first version used headroom 1, which makes each tolerance equal to January's own rate, so any ordinary month-to-month wobble tripped it. In February, `max:extra` was 0.082% against 0.078% allowed. Adding headroom more than halved the failures. The default of 2 is my choice and I tuned it after seeing these 12 months, so treat the headroom 2 row as fitted to this data. The proposal still lacks what I wrote by hand: it has no `dropoff_not_before_pickup` check, its `min:fare_amount` never fires in a month where mine does, and it flags `max:extra`, `max:congestion_surcharge` and `schema:airport_fee`, which I have not judged to be real problems. The three rules that fail in both contracts each month are the ones I would call real drift. Read the output, delete rules you do not believe and add the cross-column checks yourself.
+
 ## Run it under Airflow
 
 `airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a bad month fails alone and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
@@ -132,7 +156,7 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 
 ## Tests
 
-90 tests (77 for the validator, diff, CLI and annotations, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The annotation module was mutation-checked with 8 mutants (inverted severity, broken escaping, off-by-one line numbers, passing rules reported, missing-line handling and the block-style YAML match); one survived until I added a block-style YAML test. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
+120 tests (107 for the validator, diff, CLI, annotations and profile, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The annotation module was mutation-checked with 8 mutants (inverted severity, broken escaping, off-by-one line numbers, passing rules reported, missing-line handling and the block-style YAML match); one survived until I added a block-style YAML test. The profile module was checked with 18 mutants (the thresholds and their boundaries, the widening direction, the rounding, the headroom and its guard, the redundant-bounds rule and the tolerance arithmetic); the first pass left two alive, one a real gap (values exactly on the lower bound) and one equivalent code that I removed. Writing the tests also exposed a bug in my own test loader, which silently dropped the first row of every file. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
 
 ## Decisions and trade-offs
 
@@ -154,6 +178,5 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 ## Next steps
 
 - Read a contract from a dbt model's columns and tests.
-- Add a `profile` command that proposes a first contract and tolerances from a file.
 
 MIT licensed. Data: NYC Taxi and Limousine Commission trip records (public).
