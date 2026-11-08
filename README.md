@@ -71,6 +71,7 @@ datacontracts validate contracts/yellow_taxi_v1.yaml yellow_tripdata_2023-01.par
 datacontracts validate contracts/yellow_taxi_v1.yaml data.csv --json
 datacontracts validate contracts/yellow_taxi_v1.yaml data.parquet --format github   # ::error per failed rule
 datacontracts profile data.parquet --out contract.yaml   # propose a first contract to review
+datacontracts dbt-import models/schema.yml --model orders --out contract.yaml   # draft from dbt tests
 datacontracts diff old_contract.yaml new_contract.yaml
 ```
 
@@ -138,6 +139,25 @@ Not proposed: freshness, regex and cross-column checks, because they depend on h
 
 My first version used headroom 1, which makes each tolerance equal to January's own rate, so any ordinary month-to-month wobble tripped it. In February, `max:extra` was 0.082% against 0.078% allowed. Adding headroom more than halved the failures. The default of 2 is my choice and I tuned it after seeing these 12 months, so treat the headroom 2 row as fitted to this data. The proposal still lacks what I wrote by hand: it has no `dropoff_not_before_pickup` check, its `min:fare_amount` never fires in a month where mine does, and it flags `max:extra`, `max:congestion_surcharge` and `schema:airport_fee`, which I have not judged to be real problems. The three rules that fail in both contracts each month are the ones I would call real drift. Read the output, delete rules you do not believe and add the cross-column checks yourself.
 
+## Import a contract from dbt
+
+`datacontracts dbt-import schema.yml --model NAME` drafts a contract from a dbt model's column types and tests, so a team that already writes dbt tests does not start from a blank file. Only tests that mean the same thing as a contract rule are imported. Everything else is skipped and listed in comments at the top of the output, never guessed.
+
+| dbt | Contract |
+|---|---|
+| `data_type` | the column `type` (varchar, integer, double, numeric(10,2), timestamp_ntz and similar) |
+| `not_null`, `unique` | `nullable: false`, `unique: true` |
+| `accepted_values` | `allowed` |
+| `accepted_range` (dbt_utils) | `min` and `max`. A strict range (`inclusive: false`) is imported as inclusive and noted, which is slightly weaker |
+| model-contract constraints `not_null`, `unique`, `primary_key` | the same rules |
+| `relationships`, other tests, model-level tests, `where` filters, `severity: warn`, `error_if` and `warn_if` | skipped and listed |
+
+It reads both `data_tests` and the older `tests` key, and both the `arguments:` form and flat arguments. A `where: col is not null` filter is imported, because the validator already ignores nulls in `allowed` and `unique`. A column without a `data_type` is skipped, or typed from a file with `--source FILE`. With several models in the file, `--model` is required. I checked the null behavior against the sources of dbt's `unique`, `not_null` and `accepted_values` tests and dbt_utils' `accepted_range`.
+
+Differences to keep in mind: dbt reports failing groups and the validator counts failing rows, a contract has one severity per column, and `relationships` needs a join across two tables that a one-file validator cannot do.
+
+**Tried on a real schema file.** I imported the `fct_trips` model from my NYC Taxi platform's own `schema.yml` (copied unchanged to `contracts/dbt_example/`): 11 tests found, 9 imported, the 2 `relationships` skipped, and 20 columns typed. The result is `measurements/dbt_import_taxi_fct_trips.yaml`. I predicted before running that it would pass all 12 months of 2023 and catch injected defects. It passed all 12 months (2.7M to 3.4M rows each, 13 rules, 0.04 to 0.07 s per month), but it caught only 3 of the 4 defect types I injected into January: 100 null `pickup_at`, 50 `pickup_hour` of 25 and 50 negative distances were flagged, and 50 duplicated `trip_id` values were not. The schema file has `not_null` but no `unique` test on `trip_id`, so the import faithfully carries that gap into the contract. An imported contract is as strong as the dbt tests behind it. Two caveats: the warehouse of that project is not shipped, so `scripts/dbt_import_on_taxi.py` rebuilds `fct_trips` in plain DuckDB from the same SQL (same rules and variables). It is not produced by `dbt run`. And passing every month says the data meets its dbt tests, not that nothing drifted; the January-fitted contracts above are what catch drift.
+
 ## Run it under Airflow
 
 `airflow/dags/contract_check.py` validates the 12 monthly files, one mapped task per month, so a bad month fails alone and the other months still run. `src/datacontracts/orchestrate.py` holds the logic without any Airflow import, so it is unit tested directly.
@@ -156,7 +176,7 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 
 ## Tests
 
-120 tests (107 for the validator, diff, CLI, annotations and profile, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The annotation module was mutation-checked with 8 mutants (inverted severity, broken escaping, off-by-one line numbers, passing rules reported, missing-line handling and the block-style YAML match); one survived until I added a block-style YAML test. The profile module was checked with 18 mutants (the thresholds and their boundaries, the widening direction, the rounding, the headroom and its guard, the redundant-bounds rule and the tolerance arithmetic); the first pass left two alive, one a real gap (values exactly on the lower bound) and one equivalent code that I removed. Writing the tests also exposed a bug in my own test loader, which silently dropped the first row of every file. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
+195 tests (182 for the validator, diff, CLI, annotations, profile and dbt import, 12 for the orchestration helpers, and 1 DAG import and retry-policy test that runs in its own CI job with Airflow installed), run on every push with ruff. The validator tests inject an exact number of each violation into synthetic data and assert that exact count (for example 7 values below the minimum, 4 disallowed statuses, 2 duplicate ids). Boundary tests confirm that a value equal to a min or max, and a table exactly at the freshness limit, pass. I also broke the code on purpose to check that the tests notice: flipping `<` to `<=` on a bound, `>` to `>=` on the freshness limit, inverting the allowed-values test, dropping the duplicate count and zeroing the row-count shortfall each made at least one test fail. Two of those survived my first draft of the tests, and I added the boundary tests to kill them. The annotation module was mutation-checked with 8 mutants (inverted severity, broken escaping, off-by-one line numbers, passing rules reported, missing-line handling and the block-style YAML match); one survived until I added a block-style YAML test. The profile module was checked with 18 mutants (the thresholds and their boundaries, the widening direction, the rounding, the headroom and its guard, the redundant-bounds rule and the tolerance arithmetic); the first pass left two alive, one a real gap (values exactly on the lower bound) and one equivalent code that I removed. The dbt import was checked with 25 mutants (the rule mappings, the range bounds and their guards, the null-guard `where` rule, the severity and threshold filters, the legacy `tests` key, the model choice, the owner precedence, the type mapping and the imported-test count); five survived the first 71 tests, and four new tests killed them. Writing the profile tests also exposed a bug in my own test loader, which silently dropped the first row of every file. The orchestration helpers got the same treatment with 7 mutants (inverting the warning filter, the truncation limit, the missing-file check, the pass check, the log write and the webhook error handling), and one survived until I added a test for exactly five failures.
 
 ## Decisions and trade-offs
 
@@ -177,6 +197,7 @@ To run it: `pip install apache-airflow==2.10.5` with the official constraints fi
 
 ## Next steps
 
-- Read a contract from a dbt model's columns and tests.
+- Import `relationships` as a cross-file check, which needs a second input file.
+- Read dbt `unit_tests` and `sources` freshness into a contract.
 
 MIT licensed. Data: NYC Taxi and Limousine Commission trip records (public).
