@@ -1,4 +1,4 @@
-"""Command line: python -m datacontracts validate|diff ..."""
+"""Command line: python -m datacontracts validate|diff|profile ..."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ from pathlib import Path
 
 from .annotations import github_annotations
 from .diff import bump_ok, diff_contracts, required_bump
-from .spec import ContractError, load_contract
+from .profile import contract_yaml, profile_contract
+from .spec import ContractError, load_contract, parse_contract
 from .validate import validate
 
 
@@ -46,6 +47,20 @@ def _diff(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def _profile(args: argparse.Namespace) -> int:
+    raw, notes = profile_contract(args.source, dataset=args.dataset, owner=args.owner, headroom=args.headroom)
+    report = validate(parse_contract(raw), args.source)
+    if not report.ok:  # a proposal that fails on its own file is a bug, not a result
+        raise ContractError("self-check failed: " + ", ".join(r.rule for r in report.failures))
+    text = contract_yaml(raw, args.source, report.rows, notes)
+    if args.out:
+        Path(args.out).write_text(text)
+    else:
+        print(text, end="")
+    print(f"self-check passed: the proposal validates against {args.source} ({report.rows:,} rows)", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="datacontracts")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -63,9 +78,17 @@ def main(argv: list[str] | None = None) -> int:
     d = sub.add_parser("diff", help="classify changes between two contract versions")
     d.add_argument("old")
     d.add_argument("new")
+    pr = sub.add_parser("profile", help="propose a first contract from a parquet or csv file")
+    pr.add_argument("source")
+    pr.add_argument("--dataset", help="dataset name (default: from the file name)")
+    pr.add_argument("--owner", default="TODO-owner@example.com")
+    pr.add_argument(
+        "--headroom", type=float, default=2.0, help="multiply each tolerance by this (default 2, minimum 1)"
+    )
+    pr.add_argument("--out", help="write the YAML here instead of stdout")
     args = p.parse_args(argv)
     try:
-        return _validate(args) if args.cmd == "validate" else _diff(args)
+        return {"validate": _validate, "diff": _diff, "profile": _profile}[args.cmd](args)
     except (ContractError, FileNotFoundError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
