@@ -79,6 +79,14 @@ def diff_contracts(old: Contract, new: Contract) -> list[Change]:
         out.append(Change(REVIEW, "dataset", f"renamed: {old.dataset} -> {new.dataset}"))
     if old.owner != new.owner:
         out.append(Change(REVIEW, "owner", f"owner changed: {old.owner} -> {new.owner}"))
+    if old.allow_extra_columns != new.allow_extra_columns:
+        out.append(
+            Change(
+                BREAKING if new.allow_extra_columns else SAFE,
+                "allow_extra_columns",
+                "undeclared columns now allowed" if new.allow_extra_columns else "undeclared columns now rejected",
+            )
+        )
     old_cols = {c.name: c for c in old.columns}
     new_cols = {c.name: c for c in new.columns}
     for name in old_cols.keys() - new_cols.keys():
@@ -129,8 +137,14 @@ def diff_contracts(old: Contract, new: Contract) -> list[Change]:
             out.append(
                 Change(BREAKING, f"check {name}", f"tolerance raised: {a.max_violation_rate} -> {b.max_violation_rate}")
             )
+        elif b.max_violation_rate < a.max_violation_rate:
+            out.append(
+                Change(SAFE, f"check {name}", f"tolerance lowered: {a.max_violation_rate} -> {b.max_violation_rate}")
+            )
         if a.severity == "error" and b.severity == "warn":
             out.append(Change(BREAKING, f"check {name}", "downgraded from error to warn"))
+        elif a.severity == "warn" and b.severity == "error":
+            out.append(Change(SAFE, f"check {name}", "promoted from warn to error"))
     if not out and old.version != new.version:
         out.append(Change(SAFE, "version", f"bumped with no schema change: {old.version} -> {new.version}"))
     return out

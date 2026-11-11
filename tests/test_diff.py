@@ -114,3 +114,64 @@ def test_semver_enforcement():
     for version, ok in [("1.0.0", False), ("1.0.1", False), ("1.1.0", True), ("2.0.0", True)]:
         new = make(add, version)
         assert bump_ok(old, new, diff_contracts(old, new))[0] is ok
+
+
+@pytest.mark.parametrize("version,accepted", [("1.0.0", False), ("1.1.0", False), ("2.0.0", True)])
+def test_closed_schema_cannot_be_opened_without_major_bump(version, accepted):
+    old = make(lambda r: r.update(allow_extra_columns=False))
+    new = make(lambda r: r.update(allow_extra_columns=True), version=version)
+    changes = diff_contracts(old, new)
+    assert (BREAKING, "allow_extra_columns") in {(c.level, c.where) for c in changes}
+    assert required_bump(changes) == "major"
+    assert bump_ok(old, new, changes)[0] is accepted
+
+
+@pytest.mark.parametrize("change", ["close_schema", "lower_check_tolerance", "promote_warning"])
+def test_previously_omitted_strengthening_changes_need_minor_bump(change):
+    old = make(lambda r: r["checks"][0].update(severity="warn"))
+
+    def mutate(raw):
+        raw["checks"][0]["severity"] = "warn"
+        if change == "close_schema":
+            raw["allow_extra_columns"] = False
+        elif change == "lower_check_tolerance":
+            raw["checks"][0]["max_violation_rate"] = 0
+        else:
+            raw["checks"][0]["severity"] = "error"
+
+    for version, accepted in [("1.0.0", False), ("1.0.1", False), ("1.1.0", True)]:
+        new = make(mutate, version=version)
+        changes = diff_contracts(old, new)
+        assert len(changes) == 1 and changes[0].level == SAFE
+        assert required_bump(changes) == "minor"
+        assert bump_ok(old, new, changes)[0] is accepted
+        reverse = diff_contracts(new, old)
+        assert len(reverse) == 1 and reverse[0].level == BREAKING
+
+
+def test_new_extra_column_policy_agrees_with_validator_and_cli(tmp_path, capsys):
+    import duckdb
+    import yaml
+
+    from datacontracts.__main__ import main
+    from datacontracts.validate import validate
+
+    raw = {
+        "dataset": "orders",
+        "owner": "test",
+        "version": "1.0.0",
+        "columns": [{"name": "id", "type": "int"}],
+        "allow_extra_columns": False,
+    }
+    old = tmp_path / "old.yaml"
+    new = tmp_path / "new.yaml"
+    old.write_text(yaml.safe_dump(raw))
+    new.write_text(yaml.safe_dump({**raw, "allow_extra_columns": True}))
+    source = tmp_path / "orders.parquet"
+    with duckdb.connect() as con:
+        con.execute("copy (select 1 as id, 'new payload' as surprise) to ? (format parquet)", [str(source)])
+    assert not validate(parse_contract(raw), str(source)).ok
+    assert validate(parse_contract({**raw, "allow_extra_columns": True}), str(source)).ok
+    assert main(["diff", str(old), str(new)]) == 1
+    output = capsys.readouterr().out
+    assert "BREAKING allow_extra_columns" in output and "VERSION TOO LOW" in output
