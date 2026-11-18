@@ -158,9 +158,28 @@ My first version used headroom 1, which makes each tolerance equal to January's 
 
 It reads both `data_tests` and the older `tests` key, and both the `arguments:` form and flat arguments. A `where: col is not null` filter is imported, because the validator already ignores nulls in `allowed` and `unique`. A column without a `data_type` is skipped, or typed from a file with `--source FILE`. With several models in the file, `--model` is required. I checked the null behavior against the sources of dbt's `unique`, `not_null` and `accepted_values` tests and dbt_utils' `accepted_range`.
 
-Differences to keep in mind: dbt reports failing groups and the validator counts failing rows, a contract has one severity per column, and `relationships` needs a join across two tables that a one-file validator cannot do.
+Differences to keep in mind: dbt reports failing groups and the validator counts failing rows, a contract has one severity per column, and `relationships` needs a second file, which the validator takes through `--ref` (see the section above) but `dbt-import` does not write yet.
 
 **Tried on a real schema file.** I imported the `fct_trips` model from my NYC Taxi platform's own `schema.yml` (copied unchanged to `contracts/dbt_example/`): 11 tests found, 9 imported, the 2 `relationships` skipped, and 20 columns typed. The result is `measurements/dbt_import_taxi_fct_trips.yaml`. I predicted before running that it would pass all 12 months of 2023 and catch injected defects. It passed all 12 months (2.7M to 3.4M rows each, 13 rules, 0.04 to 0.07 s per month), but it caught only 3 of the 4 defect types I injected into January: 100 null `pickup_at`, 50 `pickup_hour` of 25 and 50 negative distances were flagged, and 50 duplicated `trip_id` values were not. The schema file has `not_null` but no `unique` test on `trip_id`, so the import faithfully carries that gap into the contract. An imported contract is as strong as the dbt tests behind it. Two caveats: the warehouse of that project is not shipped, so `scripts/dbt_import_on_taxi.py` rebuilds `fct_trips` in plain DuckDB from the same SQL (same rules and variables). It is not produced by `dbt run`. And passing every month says the data meets its dbt tests, not that nothing drifted; the January-fitted contracts above are what catch drift.
+
+## Check a column against another file
+
+A contract can say that every value of a column must exist in a column of a second file, the cross-file check that dbt calls `relationships`:
+
+```yaml
+relationships:
+  - name: pickup_zone_exists
+    column: PULocationID
+    to: zones            # a name, bound to a file on the command line
+    to_column: LocationID
+    max_violation_rate: 0.0   # optional, default 0
+```
+
+```bash
+python -m datacontracts validate contract.yaml trips.parquet --ref zones=zones.csv
+```
+
+The rule appears as `relationship:pickup_zone_exists` and counts rows whose value has no match. Null values in the checked column are ignored, like dbt's test. It uses `NOT EXISTS`, so a null in the reference column cannot hide violations, and duplicate reference rows do not inflate the count. A contract that names a reference without a matching `--ref` is rejected with exit code 2 instead of passing silently. `dbt-import` still skips `relationships` tests; wiring them into this rule is the next step. Not yet run on the taxi data.
 
 ## Run it under Airflow
 
@@ -201,7 +220,7 @@ The pytest suite covers the validator, diff, CLI, annotations, profile, dbt impo
 
 ## Next steps
 
-- Import `relationships` as a cross-file check, which needs a second input file.
+- Make `dbt-import` write `relationships` tests into the new `relationships` rule (the validator side exists).
 - Read dbt `unit_tests` and `sources` freshness into a contract.
 
 MIT licensed. Data: NYC Taxi and Limousine Commission trip records (public).
