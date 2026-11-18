@@ -19,7 +19,13 @@ from .validate import validate
 def _validate(args: argparse.Namespace) -> int:
     contract = load_contract(args.contract)
     now = datetime.fromisoformat(args.now) if args.now else None
-    report = validate(contract, args.source, now=now)
+    refs = {}
+    for item in args.ref or []:
+        name, sep, path = item.partition("=")
+        if not sep or not name or not path:
+            raise ContractError(f"--ref needs NAME=PATH, got {item!r}")
+        refs[name] = path
+    report = validate(contract, args.source, now=now, refs=refs)
     if args.json or args.format == "json":
         print(json.dumps(report.as_dict(), indent=2))
     else:
@@ -88,6 +94,12 @@ def main(argv: list[str] | None = None) -> int:
         choices=["text", "json", "github"],
         default="text",
         help="github prints ::error annotations per failed rule, then the text summary",
+    )
+    v.add_argument(
+        "--ref",
+        action="append",
+        metavar="NAME=PATH",
+        help="reference file for a relationships rule (repeatable), e.g. --ref zones=zones.csv",
     )
     v.add_argument("--now", help="ISO time to measure freshness against")
     d = sub.add_parser("diff", help="classify changes between two contract versions")
