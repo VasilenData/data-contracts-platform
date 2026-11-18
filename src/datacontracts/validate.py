@@ -10,7 +10,7 @@ from typing import Any
 
 import duckdb
 
-from .spec import Column, Contract
+from .spec import Column, Contract, ContractError, Relationship
 
 _INT = {
     "TINYINT",
@@ -147,11 +147,16 @@ def validate(
     *,
     now: datetime | None = None,
     sample_size: int = 3,
+    refs: dict[str, str] | None = None,
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> Report:
     if con is None:
         with duckdb.connect() as owned:
-            return validate(contract, source, now=now, sample_size=sample_size, con=owned)
+            return validate(contract, source, now=now, sample_size=sample_size, refs=refs, con=owned)
+    refs = refs or {}
+    unknown = sorted({r.to for r in contract.relationships} - set(refs))
+    if unknown:
+        raise ContractError("relationships need a reference file: pass --ref NAME=PATH for " + ", ".join(unknown))
     start = time.perf_counter()
     rel = relation(source)
     described = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM {rel}").fetchall()}
@@ -213,6 +218,10 @@ def validate(
             res.samples = _samples(con, rel, pred, sample_size)
         results.append(res)
 
+    for rel_rule in contract.relationships:
+        if rel_rule.column in {c.name for c in present}:
+            results.append(_relationship(con, rel, rel_rule, refs[rel_rule.to], n, sample_size))
+
     if contract.min_rows:
         short = max(0, contract.min_rows - n)
         results.append(
@@ -245,6 +254,33 @@ def validate(
                 )
             )
     return Report(contract.dataset, contract.version, n, time.perf_counter() - start, results)
+
+
+def _relationship(
+    con: duckdb.DuckDBPyConnection, rel: str, rule: Relationship, ref_path: str, n: int, k: int
+) -> RuleResult:
+    """Count rows whose non-null value has no match in the reference file (an anti join).
+
+    Null child values are ignored, as in dbt's relationships test. NOT EXISTS is used instead
+    of NOT IN so a null in the reference column cannot hide every violation.
+    """
+    name = f"relationship:{rule.name}"
+    parent = relation(ref_path)
+    if rule.to_column not in {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM {parent}").fetchall()}:
+        return RuleResult(name, "error", 1, 1, 0.0, f"column {rule.to_column} is missing in {rule.to}")
+    child, key = q(rule.column), q(rule.to_column)
+    pred = f"{child} IS NOT NULL AND NOT EXISTS (SELECT 1 FROM {parent} AS p WHERE p.{key} = c.{child})"
+    detail = f"value not found in {rule.to}.{rule.to_column}"
+    try:
+        bad = int(con.execute(f"SELECT count(*) FROM {rel} AS c WHERE {pred}").fetchone()[0])
+        samples = []
+        if bad and k:
+            cur = con.execute(f"SELECT c.* FROM {rel} AS c WHERE {pred} LIMIT {int(k)}")
+            cols = [d[0] for d in cur.description]
+            samples = [{c: str(v) for c, v in zip(cols, r, strict=True)} for r in cur.fetchall()]
+    except duckdb.Error as exc:
+        return RuleResult(name, "error", 1, 1, 0.0, f"could not compare with {rule.to}: {exc}")
+    return RuleResult(name, "error", bad, n, rule.max_violation_rate, detail, samples)
 
 
 def _samples(con: duckdb.DuckDBPyConnection, rel: str, pred: str, k: int) -> list[dict[str, Any]]:
