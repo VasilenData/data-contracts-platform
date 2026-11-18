@@ -40,6 +40,17 @@ class Check:
 
 
 @dataclass(frozen=True)
+class Relationship:
+    """Every non-null value of `column` must exist in `to_column` of the reference file `to`."""
+
+    name: str
+    column: str
+    to: str
+    to_column: str
+    max_violation_rate: float = 0.0
+
+
+@dataclass(frozen=True)
 class Freshness:
     column: str
     max_age_hours: float
@@ -54,6 +65,7 @@ class Contract:
     min_rows: int = 0
     freshness: Freshness | None = None
     checks: tuple[Check, ...] = field(default_factory=tuple)
+    relationships: tuple[Relationship, ...] = field(default_factory=tuple)
     allow_extra_columns: bool = True
 
     def column(self, name: str) -> Column | None:
@@ -134,6 +146,24 @@ def parse_contract(raw: dict[str, Any]) -> Contract:
                 _number(c.get("max_violation_rate", 0.0), "max_violation_rate", maximum=1),
             )
         )
+    relationships = []
+    for r in raw.get("relationships", []):
+        for key in ("name", "column", "to", "to_column"):
+            if not isinstance(r.get(key), str) or not r[key].strip():
+                raise ContractError(f"relationship needs a non-empty string {key}: {r}")
+        if any(existing.name == r["name"] for existing in relationships):
+            raise ContractError(f"duplicate relationship name: {r['name']}")
+        if r["column"] not in names:
+            raise ContractError(f"relationship {r['name']}: column {r['column']!r} is not in the contract")
+        relationships.append(
+            Relationship(
+                r["name"],
+                r["column"],
+                r["to"],
+                r["to_column"],
+                _number(r.get("max_violation_rate", 0.0), "max_violation_rate", maximum=1),
+            )
+        )
     min_rows = raw.get("min_rows", 0)
     if isinstance(min_rows, bool) or not isinstance(min_rows, int) or min_rows < 0:
         raise ContractError("min_rows must be a non-negative integer")
@@ -145,6 +175,7 @@ def parse_contract(raw: dict[str, Any]) -> Contract:
         min_rows=min_rows,
         freshness=freshness,
         checks=tuple(checks),
+        relationships=tuple(relationships),
         allow_extra_columns=_boolean(raw.get("allow_extra_columns", True), "allow_extra_columns"),
     )
 
