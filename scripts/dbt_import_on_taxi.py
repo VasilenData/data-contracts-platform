@@ -5,7 +5,8 @@ same SQL as the dbt models (stg_trips_classified -> stg_trips -> fct_trips, same
 It is NOT produced by `dbt run`. The schema file is copied unchanged from nyc-taxi-data-platform.
 
 Prediction written before the first run: the imported contract passes all 12 months, because stg_trips
-only lets valid rows through; the two relationships tests are skipped; and injected defects are caught.
+only lets valid rows through; the two relationships tests are now imported and pass against taxi_zone_lookup.csv;
+and injected defects are caught, including 50 pickup zone ids that do not exist.
 
 Usage: PYTHONPATH=src python scripts/dbt_import_on_taxi.py DIR ZONES_CSV
        (DIR holds yellow_tripdata_2023-MM.parquet, ZONES_CSV is taxi_zone_lookup.csv)
@@ -72,6 +73,7 @@ COPY (
 
 report = import_dbt_report(str(schema), model="fct_trips", dataset="fct_trips")
 contract = parse_contract(report.raw)
+REFS = {"taxi_zone_lookup": zones}
 out = {
     "schema_file": "contracts/dbt_example/taxi_marts_schema.yml",
     "tests_found": report.found,
@@ -91,7 +93,7 @@ for m in range(1, 13):
     t0 = time.perf_counter()
     con.execute(BUILD.format(month=month, src=data / f"yellow_tripdata_{month}.parquet", zones=zones, out=path))
     built = time.perf_counter() - t0
-    rep = validate(contract, str(path), con=con)
+    rep = validate(contract, str(path), refs=REFS, con=con)
     out["months"].append(
         {
             "month": month,
@@ -112,12 +114,19 @@ con.execute(f"""COPY (
     CASE WHEN rn <= 100 THEN NULL ELSE pickup_at END AS pickup_at,
     CASE WHEN rn BETWEEN 101 AND 150 THEN 25 ELSE pickup_hour END AS pickup_hour,
     CASE WHEN rn BETWEEN 151 AND 200 THEN (SELECT min(trip_id) FROM read_parquet('{jan}')) ELSE trip_id END AS trip_id,
-    CASE WHEN rn BETWEEN 201 AND 250 THEN -1.0 ELSE distance_miles END AS distance_miles)
+    CASE WHEN rn BETWEEN 201 AND 250 THEN -1.0 ELSE distance_miles END AS distance_miles,
+    CASE WHEN rn BETWEEN 251 AND 300 THEN 9999 ELSE pickup_zone_id END AS pickup_zone_id)
   FROM (SELECT *, row_number() OVER () AS rn FROM read_parquet('{jan}'))
 ) TO '{bad}' (FORMAT PARQUET)""")
-rep = validate(contract, str(bad), con=con)
+rep = validate(contract, str(bad), refs=REFS, con=con)
 out["injected_defects"] = {
-    "injected": {"null pickup_at": 100, "pickup_hour 25": 50, "duplicate trip_id": 50, "distance -1": 50},
+    "injected": {
+        "null pickup_at": 100,
+        "pickup_hour 25": 50,
+        "duplicate trip_id": 50,
+        "distance -1": 50,
+        "pickup_zone_id 9999": 50,
+    },
     "rules_failed": {r.rule: r.violations for r in rep.failures},
 }
 (root / "measurements" / "dbt_import_on_taxi.json").write_text(json.dumps(out, indent=2) + "\n")
