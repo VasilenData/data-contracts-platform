@@ -1,3 +1,4 @@
+import json
 import textwrap
 
 import duckdb
@@ -163,23 +164,6 @@ def test_accepted_range_on_a_string_column_is_skipped(tmp_path):
     raw, notes = import_dbt(schema(tmp_path, text))
     assert "min" not in cols(raw)["s"]
     assert any("accepted_range" in n for n in skipped(notes))
-
-
-def test_relationships_are_skipped_and_reported_with_their_target(tmp_path):
-    text = """
-        models:
-          - name: m
-            columns:
-              - name: zone
-                data_type: integer
-                data_tests:
-                  - relationships:
-                      arguments: {to: "ref('zones')", field: id}
-    """
-    raw, notes = import_dbt(schema(tmp_path, text))
-    assert cols(raw)["zone"] == {"name": "zone", "type": "int"}
-    (n,) = skipped(notes)
-    assert "relationships" in n and "ref('zones')" in n and "zone" in n
 
 
 def test_unknown_tests_are_skipped_and_reported_not_guessed(tmp_path):
@@ -491,7 +475,7 @@ def test_rendered_notes_appear_as_comments(tmp_path):
     path = schema(tmp_path, text)
     raw, notes = import_dbt(path)
     out = dbt_contract_yaml(raw, path, "m", notes)
-    assert any(line.startswith("# - skipped") and "relationships" in line for line in out.splitlines())
+    assert any(line.startswith("# - note") and "--ref x=PATH" in line for line in out.splitlines())
     assert yaml.safe_load(out) == raw
 
 
@@ -690,3 +674,106 @@ def test_report_counts_tests_and_constraints_found_and_imported(tmp_path):
     """
     r = import_dbt_report(schema(tmp_path, text))
     assert (r.imported, r.found, r.model) == (2, 5, "m")
+
+
+def rel_schema(tmp_path, tests, col="zone"):
+    text = f"""
+        models:
+          - name: m
+            columns:
+              - name: {col}
+                data_type: integer
+                data_tests: {tests}
+    """
+    return schema(tmp_path, text)
+
+
+def test_relationship_with_ref_becomes_a_contract_rule(tmp_path):
+    path = rel_schema(tmp_path, "[{relationships: {arguments: {to: \"ref('zones')\", field: id}}}]")
+    raw, notes = import_dbt(path)
+    assert raw["relationships"] == [{"name": "zone_in_zones", "column": "zone", "to": "zones", "to_column": "id"}]
+    assert skipped(notes) == []
+    assert any("--ref zones=PATH" in n for n in notes)
+    assert parse_contract(raw).relationships[0].to == "zones"
+
+
+def test_relationship_accepts_flat_style_two_argument_ref_and_source(tmp_path):
+    for to, target in [
+        ("ref('zones')", "zones"),
+        ('ref("zones")', "zones"),
+        ("ref('pkg', 'zones')", "zones"),
+        ("source('raw', 'zones')", "raw_zones"),
+    ]:
+        raw, _ = import_dbt(rel_schema(tmp_path, f"[{{relationships: {{to: {json.dumps(to)}, field: id}}}}]"))
+        assert raw["relationships"][0]["to"] == target, to
+
+
+@pytest.mark.parametrize(
+    "to",
+    ["zones", "ref('zones', v=2)", "ref(var('t'))", "ref('a') ~ 'b'", "source('only_one')", "ref('')"],
+)
+def test_relationship_with_unusable_target_is_skipped_and_reported(tmp_path, to):
+    raw, notes = import_dbt(rel_schema(tmp_path, f"[{{relationships: {{to: {json.dumps(to)}, field: id}}}}]"))
+    assert "relationships" not in raw
+    (n,) = skipped(notes)
+    assert "relationships on zone" in n and to in n
+
+
+def test_relationship_without_field_is_skipped(tmp_path):
+    raw, notes = import_dbt(rel_schema(tmp_path, "[{relationships: {to: \"ref('z')\"}}]"))
+    assert "relationships" not in raw and len(skipped(notes)) == 1
+
+
+@pytest.mark.parametrize("config", ["severity: warn", 'where: "zone > 3"', "error_if: '>10'"])
+def test_relationship_with_config_that_changes_meaning_is_skipped(tmp_path, config):
+    tests = f"[{{relationships: {{to: \"ref('z')\", field: id, {config}}}}}]"
+    raw, notes = import_dbt(rel_schema(tmp_path, tests))
+    assert "relationships" not in raw and len(skipped(notes)) == 1
+
+
+def test_two_relationships_get_distinct_names_and_exact_duplicate_is_skipped(tmp_path):
+    tests = (
+        "[{relationships: {to: \"ref('z')\", field: id}}, "
+        "{relationships: {to: \"ref('z')\", field: code}}, "
+        "{relationships: {to: \"ref('z')\", field: code}}]"
+    )
+    raw, notes = import_dbt(rel_schema(tmp_path, tests))
+    assert [r["name"] for r in raw["relationships"]] == ["zone_in_z", "zone_in_z_code"]
+    assert len(skipped(notes)) == 1
+    parse_contract(raw)
+
+
+def test_relationship_on_a_skipped_column_is_not_imported(tmp_path):
+    text = """
+        models:
+          - name: m
+            columns:
+              - {name: ok, data_type: integer}
+              - name: untyped
+                data_tests: [{relationships: {to: "ref('z')", field: id}}]
+    """
+    raw, _ = import_dbt(schema(tmp_path, text))
+    assert "relationships" not in raw
+
+
+def test_relationship_counts_as_imported_in_cli_summary(tmp_path, capsys):
+    path = rel_schema(tmp_path, "[not_null, {relationships: {to: \"ref('z')\", field: id}}]")
+    assert main(["dbt-import", path]) == 0
+    assert "imported 2 of 2 tests, skipped 0" in capsys.readouterr().err
+
+
+def test_rendered_relationships_round_trip_and_validate_with_ref(tmp_path, capsys):
+    path = rel_schema(tmp_path, "[{relationships: {to: \"ref('zones')\", field: id}}]")
+    out = tmp_path / "c.yaml"
+    assert main(["dbt-import", path, "--out", str(out)]) == 0
+    assert "relationships:" in out.read_text()
+    con = duckdb.connect()
+    good, bad, zones = (tmp_path / n for n in ("good.csv", "bad.csv", "zones.csv"))
+    con.execute(f"COPY (SELECT * FROM (VALUES (1),(2),(NULL)) t(zone)) TO '{good}' (HEADER)")
+    con.execute(f"COPY (SELECT * FROM (VALUES (1),(9)) t(zone)) TO '{bad}' (HEADER)")
+    con.execute(f"COPY (SELECT * FROM (VALUES (1),(2)) t(id)) TO '{zones}' (HEADER)")
+    capsys.readouterr()
+    assert main(["validate", str(out), str(good), "--ref", f"zones={zones}"]) == 0
+    assert main(["validate", str(out), str(bad), "--ref", f"zones={zones}"]) == 1
+    assert "relationship:zone_in_zones" in capsys.readouterr().out
+    assert main(["validate", str(out), str(good)]) == 2
