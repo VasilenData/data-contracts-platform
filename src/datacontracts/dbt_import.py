@@ -2,10 +2,13 @@
 
 Only dbt tests that mean the same thing as a contract rule are imported. Everything else is
 skipped and listed, never guessed: a rule that quietly means something different is worse than
-a missing one. The contract validator runs on one file, so joins (`relationships`) cannot be checked.
+a missing one.
 
-Imported: `not_null`, `unique`, `accepted_values`, `accepted_range` (dbt_utils), and the
-`not_null`, `unique` and `primary_key` constraints of a dbt model contract.
+Imported: `not_null`, `unique`, `accepted_values`, `accepted_range` (dbt_utils), `relationships`
+whose target is a literal `ref('x')` or `source('s', 'x')`, and the `not_null`, `unique` and
+`primary_key` constraints of a dbt model contract. A relationship becomes a contract
+`relationships` rule that names the target; the file behind it is supplied with
+`validate --ref NAME=PATH`.
 """
 
 from __future__ import annotations
@@ -104,7 +107,44 @@ def _number(v: Any) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def _apply_test(name: str, args: dict[str, Any], col: dict[str, Any], notes: list[str]) -> bool:
+_REF = re.compile(r"""^\s*ref\(\s*(?:['"][^'"]+['"]\s*,\s*)?['"]([^'"]+)['"]\s*\)\s*$""")
+_SOURCE = re.compile(r"""^\s*source\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)\s*$""")
+
+
+def _target_name(to: Any) -> str | None:
+    """The reference name for a literal ref('x') or source('s', 'x'), else None."""
+    if not isinstance(to, str):
+        return None
+    if m := _REF.match(to):
+        return m[1]
+    if m := _SOURCE.match(to):
+        return f"{m[1]}_{m[2]}"
+    return None
+
+
+def _relationship(args: dict[str, Any], col: dict[str, Any], rels: list[dict[str, Any]], notes: list[str]) -> bool:
+    cname, to, field = col["name"], args.get("to"), args.get("field")
+    target = _target_name(to)
+    if target is None or not isinstance(field, str) or not field.strip():
+        notes.append(
+            f"skipped relationships on {cname}: references {to}.{field}; "
+            "needs a literal ref('x') or source('s', 'x') and a field name"
+        )
+        return False
+    name = f"{cname}_in_{target}"
+    if any(r["name"] == name for r in rels):
+        name = f"{name}_{field}"
+    if any(r["name"] == name for r in rels):
+        notes.append(f"skipped relationships on {cname}: the same check to {target}.{field} is already imported")
+        return False
+    rels.append({"name": name, "column": cname, "to": target, "to_column": field})
+    notes.append(f"note: relationship {name} needs `--ref {target}=PATH` when you validate")
+    return True
+
+
+def _apply_test(
+    name: str, args: dict[str, Any], col: dict[str, Any], notes: list[str], rels: list[dict[str, Any]]
+) -> bool:
     """Apply one test to the column rule dict. True if imported."""
     cname = col["name"]
     if name == "not_null":
@@ -144,11 +184,7 @@ def _apply_test(name: str, args: dict[str, Any], col: dict[str, Any], notes: lis
             )
         return True
     if name == "relationships":
-        notes.append(
-            f"skipped relationships on {cname}: references {args.get('to')}.{args.get('field')}; "
-            "the validator checks one file, not joins"
-        )
-        return False
+        return _relationship(args, col, rels, notes)
     notes.append(f"skipped {name} on {cname}: no equivalent contract rule")
     return False
 
@@ -228,6 +264,7 @@ def import_dbt_report(
     from_file = _source_types(source)
     notes: list[str] = []
     columns: list[dict[str, Any]] = []
+    rels: list[dict[str, Any]] = []
     done = total = 0
 
     for c in columns_in or []:
@@ -257,7 +294,7 @@ def import_dbt_report(
             if why:
                 notes.append(f"skipped {tname} on {name}: {why}")
                 continue
-            done += _apply_test(tname, args, col, notes)
+            done += _apply_test(tname, args, col, notes, rels)
         columns.append(col)
 
     for item in _items(entry):
@@ -281,6 +318,8 @@ def import_dbt_report(
         "allow_extra_columns": True,
         "columns": columns,
     }
+    if rels:
+        raw["relationships"] = rels
     return Imported(raw, notes, done, total, entry["name"])
 
 
@@ -299,4 +338,8 @@ def dbt_contract_yaml(raw: dict[str, Any], schema_path: str, model: str, notes: 
     out.append("columns:")
     for c in raw["columns"]:
         out.append("  - {" + ", ".join(f"{k}: {_flow(v)}" for k, v in c.items()) + "}")
+    if raw.get("relationships"):
+        out.append("relationships:")
+        for r in raw["relationships"]:
+            out.append("  - {" + ", ".join(f"{k}: {_flow(v)}" for k, v in r.items()) + "}")
     return "\n".join(out) + "\n"
